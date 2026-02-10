@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
     
     <style>
-        /* --- RESET & CORE --- */
+        /* --- CORE RESET --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #000000;
@@ -26,44 +26,29 @@
         
         .serif { font-family: 'Cormorant Garamond', serif; }
 
-        /* --- LAYERING SYSTEM (CRITICAL FIX) --- */
-        /* Ensures UI is ALWAYS above background */
-        #layer-background {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        
-        #layer-ui {
-            position: relative;
-            z-index: 50;
-            width: 100%;
-            height: 100%;
-        }
+        /* --- LAYERING --- */
+        #layer-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+        #layer-ui { position: relative; z-index: 50; width: 100%; height: 100%; }
 
-        /* --- BACKGROUND ANIMATION --- */
+        /* --- BACKGROUND BOKEH --- */
         .orb {
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
-            opacity: 0.5;
+            opacity: 0.4;
             mix-blend-mode: screen;
             animation: float 25s infinite ease-in-out alternate;
         }
-        
-        /* Cool Tones Configuration */
-        #orb1 { background: #4338ca; width: 80vw; height: 80vw; top: -10%; left: -10%; } /* Indigo */
-        #orb2 { background: #059669; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-direction: reverse; } /* Emerald */
-        #orb3 { background: #7c3aed; width: 60vw; height: 60vw; top: 40%; left: 20%; animation-duration: 35s; } /* Violet */
+        #orb1 { background: #312e81; width: 80vw; height: 80vw; top: -10%; left: -10%; } /* Indigo */
+        #orb2 { background: #064e3b; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-direction: reverse; } /* Emerald */
+        #orb3 { background: #4c1d95; width: 60vw; height: 60vw; top: 40%; left: 20%; } /* Violet */
 
         @keyframes float { 
-            0% { transform: translate(0,0) scale(1); } 
-            100% { transform: translate(30px, -30px) scale(1.1); } 
+            0% { transform: translate(0,0); } 
+            100% { transform: translate(30px, -30px); } 
         }
 
-        /* --- GLASS UI --- */
+        /* --- UI COMPONENTS --- */
         .glass-box {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
@@ -72,7 +57,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        /* --- TEXT ANIMATION ENGINE (CSS ENFORCED) --- */
         .gold-text {
             background: linear-gradient(to bottom, #fff, #fde047);
             -webkit-background-clip: text;
@@ -80,47 +64,43 @@
             color: #fde047; /* Fallback */
         }
 
-        /* Word Reveal: Starts invisible, animates to visible */
+        /* --- ANIMATION ENGINE (CSS KEYFRAMES) --- */
+        
+        /* 1. Word Reveal (Blur Fade) */
         .word-wrapper {
             display: inline-block;
-            white-space: pre; 
+            white-space: pre;
             margin-right: 0.25em;
         }
         
         .animate-word {
             opacity: 0; /* START INVISIBLE */
             display: inline-block;
-            transform: translateY(15px);
-            filter: blur(8px);
-            animation: revealWord 0.8s forwards cubic-bezier(0.2, 1, 0.3, 1);
+            transform: translateY(10px) scale(0.95);
+            filter: blur(10px);
+            animation: textReveal 1s forwards cubic-bezier(0.2, 1, 0.3, 1);
         }
 
-        @keyframes revealWord {
-            0% { opacity: 0; transform: translateY(15px); filter: blur(8px); }
-            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        @keyframes textReveal {
+            0% { opacity: 0; transform: translateY(10px) scale(0.95); filter: blur(10px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
 
-        /* Line Reveal */
+        /* 2. Line Reveal */
         .animate-line {
             opacity: 0;
             transform: translateY(10px);
-            animation: revealLine 1s forwards ease-out;
+            filter: blur(5px);
+            animation: lineReveal 1.2s forwards ease-out;
         }
 
-        @keyframes revealLine {
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes lineReveal {
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
-        /* --- UTILS --- */
-        .progress-ring__circle {
-            transition: stroke-dashoffset 0.1s linear;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-
-        /* Fade Page Transitions */
-        .fade-in { animation: fadeIn 1s ease forwards; }
-        .fade-out { animation: fadeOut 0.5s ease forwards; }
+        /* 3. Page Transitions */
+        .fade-enter { animation: fadeIn 1.5s ease forwards; }
+        .fade-exit { animation: fadeOut 0.5s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
@@ -129,17 +109,18 @@
 <body class="h-dvh w-full overflow-hidden bg-black">
 
     <audio id="bg-music" loop preload="auto">
-        <source src="https://raw.githubusercontent.com/sound-library/ambient/main/ethereal-pad.mp3" type="audio/mpeg">
-        <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_13a3780302.mp3?filename=angelic-pad-123497.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3?filename=cosmic-glow-6703.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2023/02/28/audio_5505e09c85.mp3" type="audio/mpeg">
     </audio>
 
-    <div id="layer-background">
+    <div id="layer-bg">
         <div id="orb1" class="orb"></div>
         <div id="orb2" class="orb"></div>
         <div id="orb3" class="orb"></div>
-        <div class="absolute inset-0 bg-black/40"></div> </div>
+        <div class="absolute inset-0 bg-black/40"></div>
+    </div>
 
-    <main id="app-container" class="fade-in w-full h-full flex flex-col items-center justify-center p-4 text-center z-50 relative">
+    <main id="app-container" class="fade-enter w-full h-full flex flex-col items-center justify-center p-4 text-center z-50 relative">
         </main>
 
     <script>
@@ -196,24 +177,24 @@
             audio: document.getElementById('bg-music')
         };
 
-        // --- ENGINE FUNCTIONS ---
+        // --- CORE FUNCTIONS ---
 
-        // 1. Audio (Hard Trigger)
+        // 1. Audio Manager (Click Trigger)
         function playAudio() {
             dom.audio.muted = false;
-            dom.audio.volume = 0.6;
+            dom.audio.volume = 0.5;
             const p = dom.audio.play();
-            if(p !== undefined) {
-                p.catch(e => console.log("Audio autoplay blocked."));
+            if (p !== undefined) {
+                p.catch(e => console.log("Audio waiting for interaction..."));
             }
         }
 
-        // 2. Text Animator (CSS Driven)
-        function typeText(element, text) {
+        // 2. Text Animator (The Blur Fade Engine)
+        function injectAnimatedText(element, text) {
             const words = text.split(" ");
             let html = "";
             words.forEach((word, i) => {
-                // Stagger animation delay via inline style
+                // Stagger: 0.25s per word
                 const delay = i * 0.25; 
                 html += `<span class="word-wrapper"><span class="animate-word" style="animation-delay: ${delay}s">${word}</span></span>`;
             });
@@ -222,11 +203,9 @@
         }
 
         // 3. Haptics
-        function vibrate(pattern) {
-            if (navigator.vibrate) navigator.vibrate(pattern);
-        }
+        function vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); }
 
-        // --- RENDERERS ---
+        // --- SCENES ---
 
         function renderInstructions() {
             dom.container.innerHTML = `
@@ -248,7 +227,7 @@
 
             document.getElementById('btn-start').addEventListener('click', () => {
                 vibrate(50);
-                playAudio(); // MUST be inside click handler
+                playAudio(); // Trigger Audio
                 transitionTo(renderTitle);
             });
         }
@@ -266,7 +245,7 @@
                 <style>@keyframes widthGrow { to { width: 100px; } }</style>
             `;
 
-            typeText(document.getElementById('title-text'), "9 PROMISES");
+            injectAnimatedText(document.getElementById('title-text'), "9 PROMISES");
 
             setTimeout(() => {
                 const btn = document.getElementById('btn-enter');
@@ -309,14 +288,13 @@
                 </div>
             `;
 
-            // Inject Lines
+            // Split by sentence for the visual part (block fades)
             const sentences = data.visual.match(/[^\.!\?]+[\.!\?]+/g) || [data.visual];
             const textContainer = document.getElementById('text-visual');
             textContainer.innerHTML = sentences.map((s, i) => 
                 `<div class="animate-line mb-4 last:mb-0" style="animation-delay: ${i*0.8}s">${s.trim()}</div>`
             ).join('');
 
-            // Show UI after text delay
             const totalDelay = sentences.length * 800 + 500;
             setTimeout(() => {
                 document.getElementById('action-ui').classList.remove('opacity-0');
@@ -324,7 +302,7 @@
             }, totalDelay);
         }
 
-        function renderQuote() {
+        function renderMantra() {
             const data = promises[state.index];
 
             dom.container.innerHTML = `
@@ -339,8 +317,8 @@
                 </div>
             `;
 
-            // Calculate duration
-            const durationSec = typeText(document.getElementById('text-quote'), `"${data.mantra}"`);
+            // Use the Blur-Fade Injector here
+            const durationSec = injectAnimatedText(document.getElementById('text-quote'), `"${data.mantra}"`);
             
             setTimeout(() => {
                 const btn = document.getElementById('btn-next');
@@ -354,7 +332,7 @@
                         transitionTo(renderFinale);
                     }
                 };
-            }, durationSec * 1000);
+            }, durationSec * 1000 + 500);
         }
 
         function renderFinale() {
@@ -374,7 +352,7 @@
                 </div>
             `;
 
-            typeText(document.getElementById('text-final-title'), "Welcome Home.");
+            injectAnimatedText(document.getElementById('text-final-title'), "Welcome Home.");
 
             setTimeout(() => {
                 const el = document.getElementById('text-final-body');
@@ -417,7 +395,7 @@
                 if (state.progress >= 100) {
                     state.holding = false;
                     vibrate([50, 50, 100]);
-                    transitionTo(renderQuote);
+                    transitionTo(renderMantra);
                 } else {
                     state.animFrame = requestAnimationFrame(loop);
                 }
