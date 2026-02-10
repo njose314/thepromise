@@ -23,7 +23,7 @@
         
         .serif { font-family: 'Cormorant Garamond', serif; }
         
-        /* --- Dynamic Cool Bokeh Background --- */
+        /* --- Cool Bokeh Background --- */
         .bokeh-container {
             position: absolute;
             inset: 0;
@@ -41,7 +41,6 @@
             animation: float 25s infinite ease-in-out alternate;
         }
         
-        /* Blue-Green-Purple Theme */
         #orb1 { background: #4c1d95; width: 80vw; height: 80vw; top: -10%; left: -10%; animation-duration: 30s; } /* Purple */
         #orb2 { background: #047857; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-duration: 25s; animation-direction: reverse; } /* Green */
         #orb3 { background: #1e40af; width: 70vw; height: 70vw; top: 40%; left: 20%; animation-duration: 35s; } /* Blue */
@@ -62,34 +61,28 @@
             transition: all 0.5s ease;
         }
 
-        /* --- Text Animations --- */
+        /* --- Text Animations (CSS Based for Stability) --- */
         .gold-text {
             background: linear-gradient(to bottom, #fff, #e0c080);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* Word-by-Word Blur Fade */
-        .word-wrapper {
-            display: inline-block;
-            overflow: hidden;
-            vertical-align: top;
-            margin-right: 0.25em;
-        }
-        .word-blur {
+        /* Word Animation */
+        .word-span {
             opacity: 0;
-            filter: blur(12px);
-            transform: translateY(10px);
             display: inline-block;
-            transition: all 1s cubic-bezier(0.2, 1, 0.3, 1);
+            transform: translateY(10px);
+            filter: blur(10px);
+            margin-right: 0.25em;
+            animation: wordReveal 1s forwards cubic-bezier(0.2, 1, 0.3, 1);
         }
-        .word-blur.visible {
-            opacity: 1;
-            filter: blur(0);
-            transform: translateY(0);
+        
+        @keyframes wordReveal {
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
-        /* Sentence-by-Sentence Blur Fade (For Visuals) */
+        /* Line Animation */
         .line-blur {
             opacity: 0;
             filter: blur(8px);
@@ -192,23 +185,19 @@
         // --- Utilities ---
         const vibrate = (p) => { if(navigator.vibrate) navigator.vibrate(p); };
 
-        // --- Helper: Word-by-Word Animation (Revised for Stability) ---
+        // --- Helper: Stable Word Animation (CSS Based) ---
         function renderWordByWord(element, text, delayStart = 0) {
             const words = text.split(" ");
-            // Use spans inside spans to handle overflow and transforms better
-            element.innerHTML = words.map(w => `<span class="word-wrapper"><span class="word-blur">${w}</span></span>`).join("");
+            // Create HTML string with inline styles for delay
+            const html = words.map((w, i) => {
+                const delay = (delayStart + (i * 300)) / 1000; // Convert to seconds
+                return `<span class="word-span" style="animation-delay: ${delay}s">${w}</span>`;
+            }).join(" ");
             
-            const spans = element.querySelectorAll('.word-blur');
-            let totalDelay = 0;
+            element.innerHTML = html;
             
-            spans.forEach((span, i) => {
-                const delay = delayStart + (i * 350); // Slower, more deliberate pace
-                totalDelay = delay;
-                setTimeout(() => {
-                    span.classList.add('visible');
-                }, delay);
-            });
-            return totalDelay;
+            // Return total time for next event scheduling
+            return delayStart + (words.length * 300);
         }
 
         // --- SCENE 1: Instructions ---
@@ -231,19 +220,12 @@
                 </div>
             `;
             
-            // Audio trigger
+            // Audio trigger - attached directly to user interaction
             document.getElementById('ready-btn').addEventListener('click', () => {
-                audio.volume = 0;
+                audio.volume = 0.6; // Set direct volume
                 const playPromise = audio.play();
-                
                 if (playPromise !== undefined) {
-                    playPromise.then(_ => {
-                        let vol = 0;
-                        let fade = setInterval(() => {
-                            if(vol < 0.6) { vol += 0.05; audio.volume = vol; }
-                            else clearInterval(fade);
-                        }, 200);
-                    }).catch(error => console.log("Audio play failed"));
+                    playPromise.catch(error => console.log("Audio play error:", error));
                 }
                 
                 vibrate(50);
@@ -255,7 +237,7 @@
         function renderTitle() {
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full w-full">
-                    <div class="h-24 flex items-end">
+                    <div class="h-32 flex items-end justify-center">
                         <h1 class="serif text-5xl md:text-6xl text-white tracking-widest mb-6" id="title-text"></h1>
                     </div>
                     <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_2s]"></div>
@@ -267,7 +249,6 @@
                 <style>@keyframes widthGrow { from { w: 0; } to { width: 100px; } }</style>
             `;
             
-            // Render title
             renderWordByWord(document.getElementById('title-text'), "9 PROMISES", 500);
             
             document.getElementById('enter-btn').addEventListener('click', () => {
@@ -386,7 +367,7 @@
                 </div>
             `;
 
-            // Word-by-word animation for the Mantra
+            // Stable Word-by-Word Animation
             const totalTime = renderWordByWord(document.getElementById('mantra-text'), `"${data.mantra}"`, 500);
 
             setTimeout(() => {
@@ -422,10 +403,8 @@
                 </div>
             `;
             
-            // Animate Finale Title
             renderWordByWord(document.getElementById('final-title'), "Welcome Home.", 500);
             
-            // Animate Finale Quote
             setTimeout(() => {
                 const quote = "You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for.";
                 const textEl = document.getElementById('final-text');
