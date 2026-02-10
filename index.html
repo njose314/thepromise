@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
     
     <style>
-        /* --- RESET & BASE --- */
+        /* --- RESET & CORE --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #000000;
@@ -26,7 +26,8 @@
         
         .serif { font-family: 'Cormorant Garamond', serif; }
 
-        /* --- LAYERING SYSTEM (Fixes Clicks) --- */
+        /* --- LAYERING SYSTEM (CRITICAL FIX) --- */
+        /* Ensures UI is ALWAYS above background */
         #layer-background {
             position: absolute;
             inset: 0;
@@ -52,7 +53,7 @@
             animation: float 25s infinite ease-in-out alternate;
         }
         
-        /* Cool Tones Only */
+        /* Cool Tones Configuration */
         #orb1 { background: #4338ca; width: 80vw; height: 80vw; top: -10%; left: -10%; } /* Indigo */
         #orb2 { background: #059669; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-direction: reverse; } /* Emerald */
         #orb3 { background: #7c3aed; width: 60vw; height: 60vw; top: 40%; left: 20%; animation-duration: 35s; } /* Violet */
@@ -69,54 +70,46 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: all 0.5s ease;
         }
 
-        /* --- TEXT ANIMATION ENGINE (CSS-Based for Reliability) --- */
+        /* --- TEXT ANIMATION ENGINE (CSS ENFORCED) --- */
         .gold-text {
             background: linear-gradient(to bottom, #fff, #fde047);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            /* Fallback for old browsers */
-            color: #fde047; 
+            color: #fde047; /* Fallback */
         }
 
-        /* The Word Reveal Animation */
+        /* Word Reveal: Starts invisible, animates to visible */
         .word-wrapper {
             display: inline-block;
-            white-space: pre; /* Preserves spaces */
+            white-space: pre; 
+            margin-right: 0.25em;
         }
         
         .animate-word {
-            opacity: 0;
+            opacity: 0; /* START INVISIBLE */
             display: inline-block;
-            transform: translateY(10px);
+            transform: translateY(15px);
             filter: blur(8px);
-            animation: reveal 0.8s forwards cubic-bezier(0.2, 1, 0.3, 1);
+            animation: revealWord 0.8s forwards cubic-bezier(0.2, 1, 0.3, 1);
         }
 
-        @keyframes reveal {
-            0% { opacity: 0; transform: translateY(10px); filter: blur(8px); }
+        @keyframes revealWord {
+            0% { opacity: 0; transform: translateY(15px); filter: blur(8px); }
             100% { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
         /* Line Reveal */
         .animate-line {
             opacity: 0;
-            transform: translateY(5px);
-            transition: opacity 1s ease, transform 1s ease;
-        }
-        .animate-line.visible {
-            opacity: 1;
-            transform: translateY(0);
+            transform: translateY(10px);
+            animation: revealLine 1s forwards ease-out;
         }
 
-        /* --- TRANSITIONS --- */
-        .fade-enter { animation: fadeIn 1.5s ease forwards; }
-        .fade-exit { animation: fadeOut 0.5s ease forwards; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes revealLine {
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         /* --- UTILS --- */
         .progress-ring__circle {
@@ -124,6 +117,13 @@
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
+
+        /* Fade Page Transitions */
+        .fade-in { animation: fadeIn 1s ease forwards; }
+        .fade-out { animation: fadeOut 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
     </style>
 </head>
 <body class="h-dvh w-full overflow-hidden bg-black">
@@ -137,9 +137,9 @@
         <div id="orb1" class="orb"></div>
         <div id="orb2" class="orb"></div>
         <div id="orb3" class="orb"></div>
-        <div class="absolute inset-0 bg-black/30"></div> </div>
+        <div class="absolute inset-0 bg-black/40"></div> </div>
 
-    <main id="app-container" class="fade-enter w-full h-full flex flex-col items-center justify-center p-4 text-center z-50 relative">
+    <main id="app-container" class="fade-in w-full h-full flex flex-col items-center justify-center p-4 text-center z-50 relative">
         </main>
 
     <script>
@@ -196,89 +196,73 @@
             audio: document.getElementById('bg-music')
         };
 
-        // --- CORE FUNCTIONS ---
+        // --- ENGINE FUNCTIONS ---
 
-        // 1. Audio Manager (Fixed for Mobile)
+        // 1. Audio (Hard Trigger)
         function playAudio() {
             dom.audio.muted = false;
             dom.audio.volume = 0.6;
-            const playPromise = dom.audio.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log("Audio playing successfully.");
-                }).catch(error => {
-                    console.warn("Audio autoplay blocked. Waiting for next interaction.", error);
-                });
+            const p = dom.audio.play();
+            if(p !== undefined) {
+                p.catch(e => console.log("Audio autoplay blocked."));
             }
         }
 
-        // 2. Text Animator (Fixed Logic)
+        // 2. Text Animator (CSS Driven)
         function typeText(element, text) {
             const words = text.split(" ");
             let html = "";
             words.forEach((word, i) => {
-                // Stagger delay: 0.2s per word
+                // Stagger animation delay via inline style
                 const delay = i * 0.25; 
-                html += `<span class="word-wrapper"><span class="animate-word" style="animation-delay: ${delay}s">${word}</span></span> `;
+                html += `<span class="word-wrapper"><span class="animate-word" style="animation-delay: ${delay}s">${word}</span></span>`;
             });
             element.innerHTML = html;
-            
-            // Return total duration for timing next events
-            return (words.length * 0.25) + 1; 
+            return (words.length * 0.25) + 0.8; // Return total seconds
         }
 
         // 3. Haptics
-        function triggerHaptic(type) {
-            if (!navigator.vibrate) return;
-            if (type === 'tick') navigator.vibrate(5);
-            if (type === 'success') navigator.vibrate([50, 50, 100]);
-            if (type === 'bump') navigator.vibrate(20);
+        function vibrate(pattern) {
+            if (navigator.vibrate) navigator.vibrate(pattern);
         }
 
-        // --- SCENES ---
+        // --- RENDERERS ---
 
-        // Scene 1: Instructions
         function renderInstructions() {
             dom.container.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center fade-enter">
-                    <div class="glass-box p-8 rounded-2xl w-full max-w-sm mb-12 text-left relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-1 h-full bg-white/40"></div>
-                        <h2 class="serif text-2xl text-white mb-4 tracking-wide">Preparation</h2>
-                        <p class="text-sm text-slate-200 leading-7 mb-4 font-light">
-                            This experience is best enabled through headphones. Ensure you are in a comfortable environment, away from distractions.
-                        </p>
-                        <p class="text-sm text-slate-200 leading-7 font-light">
-                            Each screen contains visualizations to imagine with your eyes closed, while focusing on long, deep breaths (3 deep breaths are recommended).
-                        </p>
-                    </div>
-                    
-                    <button id="btn-start" class="relative px-12 py-4 border border-white/20 rounded-full active:scale-95 transition-all bg-black/20 hover:bg-white/10 group">
-                        <span class="text-xs tracking-[0.3em] uppercase text-white font-semibold group-hover:text-white/80">I Am Ready</span>
-                    </button>
+                <div class="glass-box p-8 rounded-2xl w-full max-w-sm mb-12 text-left relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-white/40"></div>
+                    <h2 class="serif text-2xl text-white mb-4 tracking-wide">Preparation</h2>
+                    <p class="text-sm text-slate-200 leading-7 mb-4 font-light">
+                        This experience is best enabled through headphones. Ensure you are in a comfortable environment, away from distractions.
+                    </p>
+                    <p class="text-sm text-slate-200 leading-7 font-light">
+                        Each screen contains visualizations to imagine with your eyes closed, while focusing on long, deep breaths (3 deep breaths are recommended).
+                    </p>
                 </div>
+                
+                <button id="btn-start" class="relative px-12 py-4 border border-white/20 rounded-full active:scale-95 transition-all bg-black/20 hover:bg-white/10 group">
+                    <span class="text-xs tracking-[0.3em] uppercase text-white font-semibold group-hover:text-white/80">I Am Ready</span>
+                </button>
             `;
 
             document.getElementById('btn-start').addEventListener('click', () => {
-                triggerHaptic('bump');
-                playAudio(); // Trigger audio directly on user gesture
+                vibrate(50);
+                playAudio(); // MUST be inside click handler
                 transitionTo(renderTitle);
             });
         }
 
-        // Scene 2: Title
         function renderTitle() {
             dom.container.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center fade-enter">
-                    <div class="min-h-[100px] flex items-end justify-center">
-                        <h1 id="title-text" class="serif text-5xl md:text-6xl text-white tracking-widest leading-tight text-center"></h1>
-                    </div>
-                    <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_1s]"></div>
-                    
-                    <button id="btn-enter" class="opacity-0 transition-opacity duration-1000 text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white p-4">
-                        Enter
-                    </button>
+                <div class="min-h-[120px] flex items-end justify-center w-full">
+                    <h1 id="title-text" class="serif text-5xl md:text-6xl text-white tracking-widest leading-tight text-center"></h1>
                 </div>
+                <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_1s]"></div>
+                
+                <button id="btn-enter" class="opacity-0 transition-opacity duration-1000 text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white p-4">
+                    Enter
+                </button>
                 <style>@keyframes widthGrow { to { width: 100px; } }</style>
             `;
 
@@ -288,71 +272,63 @@
                 const btn = document.getElementById('btn-enter');
                 btn.classList.remove('opacity-0');
                 btn.onclick = () => {
-                    triggerHaptic('bump');
+                    vibrate(20);
                     transitionTo(renderVisual);
                 };
             }, 2500);
         }
 
-        // Scene 3: Visualization Card
         function renderVisual() {
             const data = promises[state.index];
 
             dom.container.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center py-6 fade-enter">
-                    
-                    <div class="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-4">
-                        Promise ${state.index + 1}
-                    </div>
+                <div class="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-4">
+                    Promise ${state.index + 1}
+                </div>
 
-                    <div class="glass-box p-8 rounded-2xl w-full flex flex-col justify-center relative mb-8 min-h-[300px] max-h-[60vh] overflow-y-auto">
-                        <div class="absolute -top-3 left-6 bg-black px-3 text-[10px] text-white/60 uppercase tracking-widest border border-white/10 rounded-full z-10">Visualize</div>
-                        <div id="text-visual" class="serif text-xl text-slate-100 leading-9 font-light tracking-wide text-left">
-                            </div>
-                    </div>
-
-                    <div id="action-ui" class="flex flex-col items-center justify-center opacity-0 transition-opacity duration-1000">
-                        <p class="text-[10px] text-white/50 leading-relaxed text-center max-w-[280px] mb-6 font-light">
-                            Close your eyes. Visualize. Breathe. <br>When ready, open eyes and hold below.
-                        </p>
-                        
-                        <div id="btn-hold" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
-                            </svg>
-                            <svg class="absolute w-24 h-24 rotate-[-90deg]">
-                                <circle class="text-white/10" stroke-width="1" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
-                                <circle id="progress-circle" class="text-white transition-all duration-75" stroke-width="2" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
-                            </svg>
+                <div class="glass-box p-8 rounded-2xl w-full flex flex-col justify-center relative mb-8 min-h-[300px] max-h-[60vh] overflow-y-auto">
+                    <div class="absolute -top-3 left-6 bg-black px-3 text-[10px] text-white/60 uppercase tracking-widest border border-white/10 rounded-full z-10">Visualize</div>
+                    <div id="text-visual" class="serif text-xl text-slate-100 leading-9 font-light tracking-wide text-left">
                         </div>
+                </div>
+
+                <div id="action-ui" class="flex flex-col items-center justify-center opacity-0 transition-opacity duration-1000">
+                    <p class="text-[10px] text-white/50 leading-relaxed text-center max-w-[280px] mb-6 font-light">
+                        Close your eyes. Visualize. Breathe. <br>When ready, open eyes and hold below.
+                    </p>
+                    
+                    <div id="btn-hold" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
+                        </svg>
+                        <svg class="absolute w-24 h-24 rotate-[-90deg]">
+                            <circle class="text-white/10" stroke-width="1" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
+                            <circle id="progress-circle" class="text-white transition-all duration-75" stroke-width="2" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
+                        </svg>
                     </div>
                 </div>
             `;
 
-            // Animate Text Lines
+            // Inject Lines
             const sentences = data.visual.match(/[^\.!\?]+[\.!\?]+/g) || [data.visual];
             const textContainer = document.getElementById('text-visual');
-            textContainer.innerHTML = sentences.map(s => `<div class="animate-line mb-4 last:mb-0">${s.trim()}</div>`).join('');
-            
-            const lines = document.querySelectorAll('.animate-line');
-            let delay = 0;
-            lines.forEach((line, i) => {
-                setTimeout(() => line.classList.add('visible'), 500 + (i * 1200));
-                delay = 500 + (i * 1200);
-            });
+            textContainer.innerHTML = sentences.map((s, i) => 
+                `<div class="animate-line mb-4 last:mb-0" style="animation-delay: ${i*0.8}s">${s.trim()}</div>`
+            ).join('');
 
+            // Show UI after text delay
+            const totalDelay = sentences.length * 800 + 500;
             setTimeout(() => {
                 document.getElementById('action-ui').classList.remove('opacity-0');
                 bindHoldEvents();
-            }, delay + 1500);
+            }, totalDelay);
         }
 
-        // Scene 4: Quote (Mantra)
         function renderQuote() {
             const data = promises[state.index];
 
             dom.container.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center px-4 fade-enter">
+                <div class="w-full h-full flex flex-col items-center justify-center px-4">
                     <div class="min-h-[200px] flex items-center justify-center">
                         <h2 id="text-quote" class="serif text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg"></h2>
                     </div>
@@ -363,15 +339,14 @@
                 </div>
             `;
 
-            // Animate words
-            const durationSecs = typeText(document.getElementById('text-quote'), `"${data.mantra}"`);
-            const durationMs = durationSecs * 1000;
-
+            // Calculate duration
+            const durationSec = typeText(document.getElementById('text-quote'), `"${data.mantra}"`);
+            
             setTimeout(() => {
                 const btn = document.getElementById('btn-next');
                 btn.classList.remove('opacity-0');
                 btn.onclick = () => {
-                    triggerHaptic('bump');
+                    vibrate(20);
                     state.index++;
                     if(state.index < promises.length) {
                         transitionTo(renderVisual);
@@ -379,26 +354,23 @@
                         transitionTo(renderFinale);
                     }
                 };
-            }, durationMs + 500);
+            }, durationSec * 1000);
         }
 
-        // Scene 5: Finale
         function renderFinale() {
             dom.container.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center px-6 fade-enter">
-                    <div class="w-32 h-32 rounded-full bg-white/10 blur-[80px] animate-pulse mb-8 absolute"></div>
-                    
-                    <div class="min-h-[80px] flex items-center justify-center mb-6">
-                        <h1 id="text-final-title" class="serif text-4xl text-white z-10"></h1>
-                    </div>
-                    
-                    <div class="glass-box p-8 rounded-xl w-full text-center z-10 max-w-sm">
-                        <div id="text-final-body" class="serif text-xl text-slate-200 leading-relaxed font-light mb-6 min-h-[100px] flex items-center justify-center"></div>
-                        <div class="h-px w-10 bg-white/20 mx-auto mb-6"></div>
-                        <p class="text-[10px] text-white/40 uppercase tracking-widest">
-                            Promise Day 2026
-                        </p>
-                    </div>
+                <div class="w-32 h-32 rounded-full bg-white/10 blur-[80px] animate-pulse mb-8 absolute"></div>
+                
+                <div class="min-h-[80px] flex items-center justify-center mb-6 z-10">
+                    <h1 id="text-final-title" class="serif text-4xl text-white"></h1>
+                </div>
+                
+                <div class="glass-box p-8 rounded-xl w-full text-center z-10 max-w-sm">
+                    <div id="text-final-body" class="serif text-xl text-slate-200 leading-relaxed font-light mb-6 min-h-[100px] flex items-center justify-center"></div>
+                    <div class="h-px w-10 bg-white/20 mx-auto mb-6"></div>
+                    <p class="text-[10px] text-white/40 uppercase tracking-widest">
+                        Promise Day 2026
+                    </p>
                 </div>
             `;
 
@@ -407,13 +379,12 @@
             setTimeout(() => {
                 const el = document.getElementById('text-final-body');
                 el.innerHTML = `<div class="animate-line">You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for.</div>`;
-                setTimeout(() => el.firstChild.classList.add('visible'), 100);
             }, 2000);
             
-            triggerHaptic('success');
+            vibrate([50, 100, 50, 100]);
         }
 
-        // --- EVENTS ---
+        // --- INTERACTION LOGIC ---
 
         function bindHoldEvents() {
             const btn = document.getElementById('btn-hold');
@@ -423,7 +394,7 @@
             const start = (e) => {
                 if(e.cancelable) e.preventDefault();
                 state.holding = true;
-                triggerHaptic('bump');
+                vibrate(20);
                 loop();
             };
 
@@ -441,11 +412,11 @@
                 const offset = total - (state.progress / 100) * total;
                 circle.style.strokeDashoffset = offset;
 
-                if (Math.floor(state.progress) % 20 === 0) triggerHaptic('tick');
+                if (Math.floor(state.progress) % 20 === 0) vibrate(5);
 
                 if (state.progress >= 100) {
                     state.holding = false;
-                    triggerHaptic('success');
+                    vibrate([50, 50, 100]);
                     transitionTo(renderQuote);
                 } else {
                     state.animFrame = requestAnimationFrame(loop);
@@ -460,10 +431,10 @@
         }
 
         function transitionTo(renderFn) {
-            dom.container.classList.add('fade-exit');
+            dom.container.classList.add('fade-out');
             setTimeout(() => {
                 dom.container.innerHTML = '';
-                dom.container.classList.remove('fade-exit');
+                dom.container.classList.remove('fade-out');
                 renderFn();
             }, 500);
         }
