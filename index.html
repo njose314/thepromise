@@ -3,415 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Inner Promise</title>
+    <title>9 Promises</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
     <style>
         /* --- Core Aesthetic --- */
         body {
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: #020202; /* Deepest black */
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
             color: #e2e8f0;
             overflow: hidden;
             touch-action: none;
             overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
-            transition: background-color 2s ease;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .serif { font-family: 'Cormorant Garamond', serif; }
+        .cinzel { font-family: 'Cinzel', serif; }
         
-        /* --- Dynamic Bokeh Background --- */
+        /* --- Background FX --- */
         .bokeh-container {
             position: absolute;
             inset: 0;
             z-index: 0;
-            overflow: hidden;
             pointer-events: none;
+            opacity: 0.4;
+            transition: opacity 2s ease;
         }
-        .bokeh-orb {
+        .orb {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.3; /* Increased opacity for distinct color */
+            filter: blur(100px);
             transition: background-color 3s ease, transform 10s ease-in-out;
-            animation: float-orb 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            animation: float 20s infinite alternate;
         }
-        @keyframes float-orb {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(40px, -40px) scale(1.15); }
+        @keyframes float { 0% { transform: translate(0,0); } 100% { transform: translate(30px, -30px); } }
+
+        /* --- Glass UI --- */
+        .glass-box {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
 
-        /* --- Text Reveal Animation --- */
-        .word-reveal {
-            opacity: 0;
-            filter: blur(12px);
-            transform: translateY(15px);
-            display: inline-block;
-            margin-right: 0.25em;
-            transition: all 1.5s cubic-bezier(0.2, 1, 0.3, 1);
+        /* --- Typography FX --- */
+        .gold-text {
+            background: linear-gradient(to bottom, #fff, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .word-reveal.visible {
+
+        .line-reveal {
+            opacity: 0;
+            filter: blur(8px);
+            transform: translateY(10px);
+            transition: all 1.5s ease;
+        }
+        .line-reveal.visible {
             opacity: 1;
             filter: blur(0);
             transform: translateY(0);
         }
 
         /* --- Animations --- */
-        .fade-enter { animation: fadeIn 2s ease forwards; }
-        .fade-exit { animation: fadeOut 1s ease forwards; }
+        .fade-in-slow { animation: fadeIn 2s ease forwards; }
+        .fade-out { animation: fadeOut 1s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-        @keyframes breathe-text {
-            0%, 100% { opacity: 0.4; transform: scale(0.98); }
-            50% { opacity: 1; transform: scale(1.02); }
-        }
+        .pulse-subtle { animation: pulse 4s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-        /* --- UI Components --- */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
+        /* --- Components --- */
         .progress-ring__circle {
             transition: stroke-dashoffset 0.1s linear;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
 
-        /* Vignette for cinematic focus */
         .vignette {
             position: absolute;
             inset: 0;
+            background: radial-gradient(circle, transparent 40%, #000 120%);
+            z-index: 2;
             pointer-events: none;
-            background: radial-gradient(circle, transparent 30%, #020202 120%);
-            opacity: 0.7;
-            z-index: 5;
         }
     </style>
 </head>
-<body class="h-dvh w-full flex flex-col items-center justify-center relative">
+<body class="h-dvh w-full flex flex-col items-center justify-center relative" oncontextmenu="return false;">
 
     <audio id="bg-music" loop preload="auto">
-        <source src="https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=ethereal-meditation-126284.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=ambience-of-space-116034.mp3" type="audio/mpeg">
     </audio>
 
-    <div class="bokeh-container" id="bg-layer">
-        <div id="orb-1" class="bokeh-orb w-[90vw] h-[90vw] top-[-20%] left-[-20%] bg-white/5"></div>
-        <div id="orb-2" class="bokeh-orb w-[100vw] h-[100vw] bottom-[-30%] right-[-20%] bg-white/5"></div>
+    <div class="bokeh-container">
+        <div id="orb1" class="orb w-[80vw] h-[80vw] top-[-20%] left-[-20%] bg-indigo-900/30"></div>
+        <div id="orb2" class="orb w-[90vw] h-[90vw] bottom-[-20%] right-[-20%] bg-rose-900/30"></div>
     </div>
-
     <div class="vignette"></div>
 
-    <main id="app-container" class="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center p-8 text-center">
+    <main id="app-container" class="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center p-6 text-center">
         </main>
 
     <script>
-        // --- The Emotional Journey Data ---
+        // --- Content Data ---
         const promises = [
-            { 
-                instruction: "Close your eyes. Imagine your feet sinking into warm, soft earth. You are a tree that no storm can uproot.",
+            {
+                visual: "Imagine yourself as a great, ancient tree standing alone in a vast field. A storm comes—wind screams, rain lashes—but your roots go so deep into the earth that you do not sway. You are not holding onto the ground; you are part of it.",
                 mantra: "I am grounded. I am my own constant.",
-                color: "#9f1239" // Deep Rose
+                color: "#7f1d1d" // Red
             },
-            { 
-                instruction: "Visualize your younger self sitting in front of you. Kiss her forehead gently. Tell her she is safe now.",
+            {
+                visual: "Visualize a mirror in front of you. See your reflection, but strip away the makeup, the filters, and the exhaustion. Look into your own eyes until you see the little girl hiding behind them. Smile at her. She has been waiting for you to see her.",
                 mantra: "I do not need them to see me. I see myself.",
-                color: "#b45309" // Amber/Gold
+                color: "#b45309" // Amber
             },
-            { 
-                instruction: "Place a hand over your heart. Feel its rhythm. It beats only for you, every single second.",
-                mantra: "I choose to be kind to my heart.",
+            {
+                visual: "Imagine your heart is a small, fragile bird resting in your hands. It has been bruised by harsh words—some from others, but most from you. Gently stroke its feathers. Apologize to it. Promise to protect it from your own cruelty.",
+                mantra: "I will speak to myself with kindness.",
                 color: "#be185d" // Pink
             },
-            { 
-                instruction: "Imagine a door opening to a room filled with light. You are allowed to walk in. You belong there.",
+            {
+                visual: "Picture a heavy iron door in your chest that you’ve kept locked to keep pain out. But it has also kept the sun out. Visualize yourself slowly turning the key. It’s scary, but you push it open. Warm, golden light floods in.",
                 mantra: "I am open to the joy that is seeking me.",
                 color: "#047857" // Emerald
             },
-            { 
-                instruction: "Think of a mistake you made. Now imagine hugging the version of you who made it. She didn't know better.",
+            {
+                visual: "Summon the version of you from your lowest moment. The one who was crying on the floor, feeling entirely alone. Walk up to her. Sit beside her. Wrap your arms around her and whisper, 'I'm here now. We made it.'",
                 mantra: "I forgive you. You did the best you could.",
-                color: "#1d4ed8" // Deep Blue
+                color: "#1e3a8a" // Blue
             },
-            { 
-                instruction: "Imagine a golden circle drawn around you. Inside this circle, only peace is allowed.",
-                mantra: "My peace is sacred. I protect it with love.",
-                color: "#4338ca" // Indigo
+            {
+                visual: "Imagine a circle drawn in gold dust around your feet. Inside this circle, the air is clean and quiet. Outside is the noise of the world. You realize you are the gatekeeper. Nothing enters this circle without your permission.",
+                mantra: "My peace is sacred. I protect it.",
+                color: "#4c1d95" // Purple
             },
-            { 
-                instruction: "Focus on the space between your eyebrows. Clear the noise. Listen to the silence.",
+            {
+                visual: "Place your hand on your gut. Feel the silence there. There is a quiet voice beneath the anxiety that has always known the truth. It warned you, and it guided you. Promise to stop shouting over it.",
                 mantra: "I trust the wisdom within my soul.",
-                color: "#7e22ce" // Purple
+                color: "#134e4a" // Teal
             },
-            { 
-                instruction: "Take a deep breath into your belly. Your body is the vessel of your life. Honor it.",
-                mantra: "I honor my body. I am a vessel of life.",
-                color: "#0f766e" // Teal
+            {
+                visual: "Look at your hands. Look at your legs. They have carried you through every heartbreak, every illness, every long night. They never gave up on you. Imagine kissing your own hands in gratitude.",
+                mantra: "I honor this vessel. I am alive.",
+                color: "#881337" // Rose
             },
-            { 
-                instruction: "Wrap your arms around yourself. Squeeze tight. Feel your own warmth.",
-                mantra: "I promise to love myself, always and in all ways.",
-                color: "#e11d48" // Bright Red
+            {
+                visual: "Imagine standing at an altar. There is no groom or bride waiting for you. There is just you, waiting for you. You take your own hands. You look into your own eyes. You say, 'I do.'",
+                mantra: "I am the love of my own life.",
+                color: "#ffffff" // White
             }
         ];
 
         // --- State ---
-        let currentIndex = 0;
+        let currentIdx = 0;
         let isHolding = false;
         let progress = 0;
-        let animationFrame;
-        const audio = document.getElementById('bg-music');
+        let animFrame;
         const container = document.getElementById('app-container');
+        const audio = document.getElementById('bg-music');
 
-        // --- Background Color Engine ---
-        function updateBackground(hexColor) {
-            document.getElementById('orb-1').style.backgroundColor = hexColor;
-            document.getElementById('orb-2').style.backgroundColor = hexColor;
-        }
+        // --- Utils ---
+        const vibrate = (p) => { if(navigator.vibrate) navigator.vibrate(p); };
+        const setColor = (c) => {
+            document.getElementById('orb1').style.backgroundColor = c;
+            document.getElementById('orb2').style.backgroundColor = c;
+        };
 
-        // --- Haptics ---
-        function vibrate(pattern) {
-            if(navigator.vibrate) navigator.vibrate(pattern);
-        }
-
-        // --- Audio Logic (Stealth Start) ---
-        function initAudio() {
+        // --- Audio Controller ---
+        const initAudio = () => {
             audio.volume = 0;
-            // Play returns a promise. We handle it silently.
-            const playPromise = audio.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(_ => {
-                    // Fade in smoothly over 3 seconds
-                    let vol = 0;
-                    const fade = setInterval(() => {
-                        if (vol < 0.6) {
-                            vol += 0.05;
-                            audio.volume = vol;
-                        } else {
-                            clearInterval(fade);
-                        }
-                    }, 250);
-                }).catch(error => {
-                    console.log("Autoplay prevented. User interaction required.");
-                });
-            }
-        }
+            audio.play().then(() => {
+                let vol = 0;
+                let fade = setInterval(() => {
+                    if(vol < 0.5) { vol += 0.05; audio.volume = vol; }
+                    else clearInterval(fade);
+                }, 200);
+            }).catch(() => console.log("Audio waiting"));
+        };
 
-        // --- Render: Intro ---
-        function renderIntro() {
+        // --- SCENE 1: Instructions ---
+        function renderInstructions() {
             container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full">
-                    <div class="w-1 h-16 bg-gradient-to-b from-transparent via-white/50 to-transparent mb-8"></div>
-                    <h1 class="serif text-5xl mb-6 gold-text tracking-widest text-white/90">Sanctuary</h1>
-                    <p class="text-slate-400 text-sm mb-12 font-light tracking-wide opacity-80 leading-6">
-                        A quiet place to come home to yourself.<br>
-                        <span class="text-xs opacity-50 uppercase tracking-widest mt-2 block">Audio Enabled</span>
-                    </p>
-                    
-                    <button id="start-btn" class="group relative px-8 py-3 rounded-full border border-white/20 transition-all active:scale-95 hover:bg-white/5">
-                        <span class="text-xs uppercase tracking-[0.25em] text-white/90 group-hover:text-white">Enter Sanctuary</span>
+                <div class="fade-in-slow w-full flex flex-col items-center">
+                    <div class="glass-box p-8 rounded-xl w-full mb-10 text-left relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-white/50"></div>
+                        <h2 class="cinzel text-xl text-white mb-6">Preparation</h2>
+                        <p class="text-sm text-slate-300 leading-7 mb-4 font-light">
+                            This experience is best enabled through headphones.
+                        </p>
+                        <p class="text-sm text-slate-300 leading-7 mb-4 font-light">
+                            Please find a quiet space. You will be asked to close your eyes and visualize specific scenarios.
+                        </p>
+                        <p class="text-sm text-white/90 leading-7 font-medium">
+                            Take 3 deep breaths now. Inhale... Exhale...
+                        </p>
+                    </div>
+                    <button id="ready-btn" class="group relative px-10 py-4 border border-white/20 rounded-full transition-all active:scale-95 hover:bg-white/5">
+                        <span class="cinzel text-xs tracking-[0.3em] uppercase group-hover:text-white transition-colors">I Am Ready</span>
                     </button>
                 </div>
             `;
-            
-            document.getElementById('start-btn').addEventListener('click', () => {
-                // Secretly start audio here
+            document.getElementById('ready-btn').addEventListener('click', () => {
                 initAudio();
                 vibrate(50);
-                transitionTo(renderInstruction);
+                transitionTo(renderTitle);
             });
         }
 
-        // --- Render: Step 1 (Instruction + Breathing) ---
-        function renderInstruction() {
-            const current = promises[currentIndex];
-            updateBackground(current.color);
+        // --- SCENE 2: Movie Title ---
+        function renderTitle() {
+            container.innerHTML = `
+                <div class="fade-in-slow flex flex-col items-center justify-center h-full">
+                    <h1 class="cinzel text-5xl md:text-6xl text-white tracking-widest mb-4 opacity-0 animate-[fadeIn_3s_ease_forwards_0.5s]">
+                        9 PROMISES
+                    </h1>
+                    <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_2s]"></div>
+                    
+                    <button id="enter-btn" class="opacity-0 animate-[fadeIn_1s_ease_forwards_3s] text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white transition-colors p-4">
+                        Enter
+                    </button>
+                </div>
+                <style>
+                    @keyframes widthGrow { from { w: 0; } to { width: 100px; } }
+                </style>
+            `;
+            document.getElementById('enter-btn').addEventListener('click', () => {
+                vibrate(50);
+                transitionTo(renderExperience);
+            });
+        }
+
+        // --- SCENE 3: Visualization (The Loop) ---
+        function renderExperience() {
+            const data = promises[currentIdx];
+            setColor(data.color);
 
             container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full w-full relative px-4">
-                    <div class="absolute top-0 text-[9px] text-white/20 tracking-[0.3em] uppercase">
-                        Promise ${currentIndex + 1}
+                <div class="fade-in-slow w-full flex flex-col items-center justify-between h-[80vh]">
+                    <div class="text-[10px] tracking-[0.4em] uppercase text-white/30 mt-4">
+                        Promise ${currentIdx + 1}
                     </div>
 
-                    <div class="max-w-xs text-center mb-10">
-                        <p class="text-[10px] text-white/40 uppercase tracking-widest mb-6 font-bold">Visualize</p>
-                        <p class="serif text-xl md:text-2xl text-slate-100 leading-relaxed font-light opacity-90">
-                            "${current.instruction}"
-                        </p>
-                    </div>
-
-                    <div class="mb-12 flex flex-col items-center animate-[breathe-text_4s_infinite_ease-in-out]">
-                        <p class="text-xs text-white/50 tracking-[0.2em] uppercase mb-2">Breathe In...</p>
-                        <div class="w-1 h-1 bg-white rounded-full mb-2"></div>
-                        <p class="text-xs text-white/50 tracking-[0.2em] uppercase">Breathe Out (3x)</p>
-                    </div>
-
-                    <div id="hold-area" class="flex flex-col items-center justify-center">
-                        <div id="hold-trigger" class="relative w-20 h-20 flex items-center justify-center cursor-pointer touch-none select-none active:scale-95 transition-transform duration-300">
-                            <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center">
-                                <div class="w-1 h-1 bg-white/50 rounded-full"></div>
+                    <div class="glass-box p-8 rounded-2xl w-full min-h-[300px] flex flex-col justify-center relative">
+                        <div class="absolute -top-3 left-6 bg-black px-2 text-xs text-white/50 cinzel tracking-widest">Visualize</div>
+                        <div id="vis-text" class="serif text-xl md:text-2xl text-slate-200 leading-loose font-light">
                             </div>
-                            
-                            <svg class="progress-ring absolute w-20 h-20 top-0 left-0" width="80" height="80">
-                                <circle id="progress-circle" class="progress-ring__circle" stroke="white" stroke-width="1" fill="transparent" r="38" cx="40" cy="40" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="round" />
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center mb-8 opacity-0 transition-opacity duration-1000" id="action-area">
+                        <p class="text-[9px] text-white/30 uppercase tracking-widest mb-6 font-light">
+                            When you have seen it clearly, hold to seal
+                        </p>
+                        
+                        <div id="hold-btn" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
+                            </svg>
+                            <svg class="absolute w-24 h-24 rotate-[-90deg]">
+                                <circle class="text-white/10" stroke-width="1" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
+                                <circle id="progress" class="text-white transition-all duration-75" stroke-width="2" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
                             </svg>
                         </div>
-                        <p class="mt-4 text-[9px] text-white/30 uppercase tracking-widest">Hold to Internalize</p>
                     </div>
                 </div>
             `;
 
-            setupHoldLogic();
+            // Line by Line Animation
+            const textEl = document.getElementById('vis-text');
+            const lines = data.visual.match(/.{1,60}(\s|$)/g) || [data.visual]; // Rough split for animation logic
+            
+            // Actually, let's just split by sentences for better emotional impact
+            const sentences = data.visual.split('. ');
+            textEl.innerHTML = sentences.map(s => `<div class="line-reveal mb-4">${s}.</div>`).join('');
+            
+            const els = document.querySelectorAll('.line-reveal');
+            let delay = 0;
+            els.forEach((el, i) => {
+                setTimeout(() => el.classList.add('visible'), 500 + (i * 1500));
+                delay = 500 + (i * 1500);
+            });
+
+            setTimeout(() => {
+                document.getElementById('action-area').classList.remove('opacity-0');
+                setupHoldListener(document.getElementById('hold-btn'));
+            }, delay + 2000);
         }
 
         // --- Interaction Logic ---
-        function setupHoldLogic() {
-            const trigger = document.getElementById('hold-trigger');
-            const circle = document.getElementById('progress-circle');
-            const circumference = 2 * Math.PI * 38;
-
+        function setupHoldListener(btn) {
+            const circle = document.getElementById('progress');
+            const total = 289;
+            
             const start = (e) => {
-                if(e.cancelable) e.preventDefault();
+                e.preventDefault();
                 isHolding = true;
-                vibrate(20);
+                vibrate(30);
                 loop();
             };
-
-            const end = (e) => {
-                if(e) e.preventDefault();
+            const end = () => {
                 isHolding = false;
                 progress = 0;
-                circle.style.strokeDashoffset = circumference;
-                if(animationFrame) cancelAnimationFrame(animationFrame);
+                circle.style.strokeDashoffset = total;
+                cancelAnimationFrame(animFrame);
             };
 
             const loop = () => {
                 if(!isHolding) return;
-                progress += 0.8; // Slower, more deliberate hold
-                const offset = circumference - (progress / 100) * circumference;
+                progress += 1.5;
+                const offset = total - (progress / 100) * total;
                 circle.style.strokeDashoffset = offset;
-
-                // Subtle haptic tick
-                if(Math.floor(progress) % 25 === 0) vibrate(5);
+                
+                if(Math.floor(progress) % 20 === 0) vibrate(5);
 
                 if(progress >= 100) {
                     isHolding = false;
-                    vibrate([50, 50, 100]);
-                    transitionTo(renderReveal);
+                    vibrate([50, 100]);
+                    transitionTo(renderMantra);
                 } else {
-                    animationFrame = requestAnimationFrame(loop);
+                    animFrame = requestAnimationFrame(loop);
                 }
-            }
+            };
 
-            trigger.addEventListener('touchstart', start, {passive: false});
-            trigger.addEventListener('touchend', end);
-            trigger.addEventListener('mousedown', start);
-            trigger.addEventListener('mouseup', end);
-            trigger.addEventListener('mouseleave', end);
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('touchstart', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('mouseleave', end);
         }
 
-        // --- Render: Step 2 (The Reveal) ---
-        function renderReveal() {
-            const current = promises[currentIndex];
-            
+        // --- SCENE 4: The Mantra ---
+        function renderMantra() {
+            const data = promises[currentIdx];
             container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full w-full px-6">
+                <div class="fade-in-slow flex flex-col items-center justify-center h-full w-full px-4">
                     <div class="min-h-[200px] flex items-center justify-center">
-                        <h2 id="mantra-text" class="serif text-3xl md:text-4xl text-white text-center leading-snug tracking-wide"></h2>
+                        <h2 class="cinzel text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg">
+                            "${data.mantra}"
+                        </h2>
                     </div>
                     
-                    <div id="next-btn-container" class="mt-16 opacity-0 transition-opacity duration-1000">
-                        <button id="next-btn" class="px-8 py-3 border-t border-b border-white/10 text-[10px] uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white/40 transition-all">
-                            Proceed
-                        </button>
-                    </div>
+                    <button id="next-btn" class="mt-16 opacity-0 px-8 py-3 border-b border-white/20 text-xs uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white transition-all">
+                        Proceed
+                    </button>
                 </div>
             `;
 
-            // Logic to type words one by one (The Reference Style)
-            const textContainer = document.getElementById('mantra-text');
-            const words = current.mantra.split(" ");
-            textContainer.innerHTML = words.map(w => `<span class="word-reveal">${w}</span>`).join(" ");
-
-            const spans = document.querySelectorAll('.word-reveal');
-            let delay = 0;
-            
-            spans.forEach((span, i) => {
-                setTimeout(() => {
-                    span.classList.add('visible');
-                    // Very subtle tick for word appearance
-                    if(i % 2 === 0 && navigator.vibrate) navigator.vibrate(5);
-                }, 600 + (i * 500)); // Very slow, hypnotic pace (500ms per word)
-                delay = 600 + (i * 500);
-            });
-
-            // Show Next Button ONLY after text finishes
             setTimeout(() => {
-                const btnContainer = document.getElementById('next-btn-container');
-                btnContainer.classList.remove('opacity-0');
-                
                 const btn = document.getElementById('next-btn');
-                btn.onclick = () => {
+                btn.classList.remove('opacity-0');
+                btn.classList.add('transition-opacity', 'duration-1000');
+                btn.addEventListener('click', () => {
                     vibrate(20);
-                    currentIndex++;
-                    if(currentIndex < promises.length) {
-                        transitionTo(renderInstruction);
-                    } else {
-                        transitionTo(renderFinale);
-                    }
-                };
-            }, delay + 1000);
+                    currentIdx++;
+                    if(currentIdx < promises.length) transitionTo(renderExperience);
+                    else transitionTo(renderFinale);
+                });
+            }, 2500);
         }
 
-        // --- Render: Finale ---
+        // --- SCENE 5: Finale ---
         function renderFinale() {
-            updateBackground('#be123c'); // Deep red for love
+            setColor('#ffffff');
             container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full max-w-md w-full p-6">
-                    <div class="w-32 h-32 rounded-full border border-white/10 flex items-center justify-center mb-10 animate-pulse">
-                        <div class="w-20 h-20 rounded-full bg-rose-500/20 blur-xl"></div>
-                    </div>
+                <div class="fade-in-slow flex flex-col items-center justify-center h-full max-w-md w-full p-6">
+                    <div class="w-24 h-24 rounded-full bg-white/10 blur-xl animate-pulse mb-8"></div>
                     
-                    <h1 class="serif text-5xl mb-6 text-white tracking-widest opacity-90">Wholeness.</h1>
+                    <h1 class="cinzel text-4xl mb-8 text-white">Welcome Home.</h1>
                     
-                    <div class="glass-panel p-8 rounded-sm relative w-full text-center">
-                        <p class="text-slate-200 text-lg leading-relaxed font-light">
-                            "The soul within you trusts your biology.<br>It trusts you to carry it."
+                    <div class="glass-box p-8 rounded-xl w-full text-center">
+                        <p class="serif text-xl text-slate-200 leading-relaxed font-light mb-6">
+                            "You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for."
                         </p>
-                        <div class="h-px w-8 bg-white/20 mx-auto my-6"></div>
-                        <p class="text-rose-200 text-sm italic opacity-80">
-                            You are safe with yourself now.
+                        <div class="h-px w-10 bg-white/20 mx-auto mb-6"></div>
+                        <p class="text-xs text-white/40 uppercase tracking-widest">
+                            Promise Day 2026
                         </p>
                     </div>
-                    
-                    <p class="mt-16 text-[10px] tracking-[0.4em] text-white/20 uppercase">Promise Day 2026</p>
                 </div>
             `;
-            vibrate([100, 50, 100, 50, 200]); 
+            vibrate([100, 50, 100, 50, 200]);
         }
 
-        // --- Transition Helper ---
-        function transitionTo(renderFn) {
-            if(container.firstElementChild) {
-                container.firstElementChild.classList.remove('fade-enter');
-                container.firstElementChild.classList.add('fade-exit');
-            }
-            
+        // --- Transitions ---
+        function transitionTo(fn) {
+            container.classList.add('fade-out');
             setTimeout(() => {
                 container.innerHTML = '';
-                renderFn();
-            }, 800); // Wait for fade out
+                container.classList.remove('fade-out');
+                fn();
+            }, 1000);
         }
 
-        // --- Init ---
-        window.addEventListener('load', renderIntro);
+        // Init
+        window.onload = renderInstructions;
 
     </script>
 </body>
