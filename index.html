@@ -12,17 +12,18 @@
         /* --- Core Aesthetic --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
-            background-color: #050505;
+            background-color: #020202; /* Deepest black */
             color: #e2e8f0;
             overflow: hidden;
-            touch-action: none; /* Prevents scroll on mobile */
+            touch-action: none;
             overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
+            transition: background-color 2s ease;
         }
         
         .serif { font-family: 'Cormorant Garamond', serif; }
         
-        /* --- Bokeh Background --- */
+        /* --- Dynamic Bokeh Background --- */
         .bokeh-container {
             position: absolute;
             inset: 0;
@@ -34,31 +35,23 @@
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
-            opacity: 0.15; /* Low opacity as requested */
-            transition: background-color 2s ease, transform 10s ease-in-out;
+            opacity: 0.3; /* Increased opacity for distinct color */
+            transition: background-color 3s ease, transform 10s ease-in-out;
             animation: float-orb 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
         }
         @keyframes float-orb {
             0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(30px, -30px) scale(1.1); }
-        }
-
-        /* --- Glass Panels --- */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            100% { transform: translate(40px, -40px) scale(1.15); }
         }
 
         /* --- Text Reveal Animation --- */
         .word-reveal {
             opacity: 0;
-            filter: blur(8px);
-            transform: translateY(10px);
+            filter: blur(12px);
+            transform: translateY(15px);
             display: inline-block;
             margin-right: 0.25em;
-            transition: all 1.2s cubic-bezier(0.2, 1, 0.3, 1);
+            transition: all 1.5s cubic-bezier(0.2, 1, 0.3, 1);
         }
         .word-reveal.visible {
             opacity: 1;
@@ -66,27 +59,38 @@
             transform: translateY(0);
         }
 
-        /* --- UI Animations --- */
-        .fade-enter { animation: fadeIn 1.5s ease forwards; }
-        .fade-exit { animation: fadeOut 0.8s ease forwards; }
-        
+        /* --- Animations --- */
+        .fade-enter { animation: fadeIn 2s ease forwards; }
+        .fade-exit { animation: fadeOut 1s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-        /* --- Progress Ring --- */
+        @keyframes breathe-text {
+            0%, 100% { opacity: 0.4; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+
+        /* --- UI Components --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .progress-ring__circle {
             transition: stroke-dashoffset 0.1s linear;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
 
-        /* --- Vignette --- */
+        /* Vignette for cinematic focus */
         .vignette {
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle, transparent 20%, #050505 130%);
-            opacity: 0.8;
+            background: radial-gradient(circle, transparent 30%, #020202 120%);
+            opacity: 0.7;
             z-index: 5;
         }
     </style>
@@ -94,12 +98,12 @@
 <body class="h-dvh w-full flex flex-col items-center justify-center relative">
 
     <audio id="bg-music" loop preload="auto">
-        <source src="https://cdn.pixabay.com/download/audio/2022/03/09/audio_c8c8a73467.mp3?filename=meditation-impulse-3011.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=ethereal-meditation-126284.mp3" type="audio/mpeg">
     </audio>
 
     <div class="bokeh-container" id="bg-layer">
-        <div id="orb-1" class="bokeh-orb w-[80vw] h-[80vw] top-[-20%] left-[-20%] bg-indigo-900"></div>
-        <div id="orb-2" class="bokeh-orb w-[90vw] h-[90vw] bottom-[-20%] right-[-20%] bg-rose-900"></div>
+        <div id="orb-1" class="bokeh-orb w-[90vw] h-[90vw] top-[-20%] left-[-20%] bg-white/5"></div>
+        <div id="orb-2" class="bokeh-orb w-[100vw] h-[100vw] bottom-[-30%] right-[-20%] bg-white/5"></div>
     </div>
 
     <div class="vignette"></div>
@@ -107,59 +111,53 @@
     <main id="app-container" class="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center p-8 text-center">
         </main>
 
-    <button id="sound-btn" class="absolute bottom-6 right-6 z-50 opacity-0 transition-opacity duration-1000 p-3 text-white/20 hover:text-white/80" onclick="toggleMute()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-        </svg>
-    </button>
-
     <script>
-        // --- Data ---
+        // --- The Emotional Journey Data ---
         const promises = [
             { 
-                instruction: "Close your eyes. Visualize roots growing from your feet into the earth. Breathe in... and out.",
+                instruction: "Close your eyes. Imagine your feet sinking into warm, soft earth. You are a tree that no storm can uproot.",
                 mantra: "I am grounded. I am my own constant.",
-                color: "rose" 
+                color: "#9f1239" // Deep Rose
             },
             { 
-                instruction: "Imagine a warm, golden light surrounding your entire body. You are safe here.",
+                instruction: "Visualize your younger self sitting in front of you. Kiss her forehead gently. Tell her she is safe now.",
                 mantra: "I do not need them to see me. I see myself.",
-                color: "amber" 
+                color: "#b45309" // Amber/Gold
             },
             { 
-                instruction: "Place a hand gently over your heart. Feel it beating just for you.",
+                instruction: "Place a hand over your heart. Feel its rhythm. It beats only for you, every single second.",
                 mantra: "I choose to be kind to my heart.",
-                color: "pink" 
+                color: "#be185d" // Pink
             },
             { 
-                instruction: "Visualize a door opening in front of you. Light is pouring through it.",
+                instruction: "Imagine a door opening to a room filled with light. You are allowed to walk in. You belong there.",
                 mantra: "I am open to the joy that is seeking me.",
-                color: "emerald" 
+                color: "#047857" // Emerald
             },
             { 
-                instruction: "Think of your younger self. Imagine giving her a long, warm hug.",
+                instruction: "Think of a mistake you made. Now imagine hugging the version of you who made it. She didn't know better.",
                 mantra: "I forgive you. You did the best you could.",
-                color: "blue" 
+                color: "#1d4ed8" // Deep Blue
             },
             { 
-                instruction: "Imagine a shield of soft white light protecting your energy.",
+                instruction: "Imagine a golden circle drawn around you. Inside this circle, only peace is allowed.",
                 mantra: "My peace is sacred. I protect it with love.",
-                color: "indigo" 
+                color: "#4338ca" // Indigo
             },
             { 
-                instruction: "Focus on the space between your eyebrows. Clear your mind.",
+                instruction: "Focus on the space between your eyebrows. Clear the noise. Listen to the silence.",
                 mantra: "I trust the wisdom within my soul.",
-                color: "purple" 
+                color: "#7e22ce" // Purple
             },
             { 
-                instruction: "Take a deep breath into your belly. Release all tension.",
+                instruction: "Take a deep breath into your belly. Your body is the vessel of your life. Honor it.",
                 mantra: "I honor my body. I am a vessel of life.",
-                color: "teal" 
+                color: "#0f766e" // Teal
             },
             { 
-                instruction: "Wrap your arms around yourself. Squeeze tight.",
+                instruction: "Wrap your arms around yourself. Squeeze tight. Feel your own warmth.",
                 mantra: "I promise to love myself, always and in all ways.",
-                color: "rose" 
+                color: "#e11d48" // Bright Red
             }
         ];
 
@@ -170,96 +168,102 @@
         let animationFrame;
         const audio = document.getElementById('bg-music');
         const container = document.getElementById('app-container');
-        const soundBtn = document.getElementById('sound-btn');
 
-        // --- Color Engine ---
-        const colors = {
-            rose: '#be123c', amber: '#b45309', pink: '#be185d', 
-            emerald: '#047857', blue: '#1d4ed8', indigo: '#4338ca', 
-            purple: '#7e22ce', teal: '#0f766e'
-        };
-
-        function setBokehColor(colorKey) {
-            const hex = colors[colorKey] || colors.rose;
-            document.getElementById('orb-1').style.backgroundColor = hex;
-            document.getElementById('orb-2').style.backgroundColor = hex;
+        // --- Background Color Engine ---
+        function updateBackground(hexColor) {
+            document.getElementById('orb-1').style.backgroundColor = hexColor;
+            document.getElementById('orb-2').style.backgroundColor = hexColor;
         }
 
-        // --- Audio Logic ---
-        function initAudio() {
-            audio.volume = 0;
-            audio.play().then(() => {
-                // Fade in
-                let vol = 0;
-                let fade = setInterval(() => {
-                    if(vol < 0.4) { vol += 0.02; audio.volume = vol; }
-                    else clearInterval(fade);
-                }, 100);
-                soundBtn.classList.remove('opacity-0');
-            }).catch(e => console.log("Audio waiting for interaction"));
-        }
-
-        function toggleMute() {
-            if(audio.paused) audio.play();
-            else audio.pause();
-        }
-
+        // --- Haptics ---
         function vibrate(pattern) {
             if(navigator.vibrate) navigator.vibrate(pattern);
+        }
+
+        // --- Audio Logic (Stealth Start) ---
+        function initAudio() {
+            audio.volume = 0;
+            // Play returns a promise. We handle it silently.
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    // Fade in smoothly over 3 seconds
+                    let vol = 0;
+                    const fade = setInterval(() => {
+                        if (vol < 0.6) {
+                            vol += 0.05;
+                            audio.volume = vol;
+                        } else {
+                            clearInterval(fade);
+                        }
+                    }, 250);
+                }).catch(error => {
+                    console.log("Autoplay prevented. User interaction required.");
+                });
+            }
         }
 
         // --- Render: Intro ---
         function renderIntro() {
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full">
-                    <h1 class="serif text-5xl mb-8 gold-text tracking-widest text-white/90">Sanctuary</h1>
-                    <p class="text-slate-400 text-sm mb-12 font-light tracking-wide">
-                        A guided journey back to yourself.<br>Audio enabled.
+                    <div class="w-1 h-16 bg-gradient-to-b from-transparent via-white/50 to-transparent mb-8"></div>
+                    <h1 class="serif text-5xl mb-6 gold-text tracking-widest text-white/90">Sanctuary</h1>
+                    <p class="text-slate-400 text-sm mb-12 font-light tracking-wide opacity-80 leading-6">
+                        A quiet place to come home to yourself.<br>
+                        <span class="text-xs opacity-50 uppercase tracking-widest mt-2 block">Audio Enabled</span>
                     </p>
-                    <button id="start-btn" class="px-8 py-3 glass-panel rounded-full text-xs uppercase tracking-[0.2em] text-white/80 transition-all active:scale-95 hover:bg-white/10">
-                        Enter
+                    
+                    <button id="start-btn" class="group relative px-8 py-3 rounded-full border border-white/20 transition-all active:scale-95 hover:bg-white/5">
+                        <span class="text-xs uppercase tracking-[0.25em] text-white/90 group-hover:text-white">Enter Sanctuary</span>
                     </button>
                 </div>
             `;
             
             document.getElementById('start-btn').addEventListener('click', () => {
+                // Secretly start audio here
                 initAudio();
                 vibrate(50);
                 transitionTo(renderInstruction);
             });
         }
 
-        // --- Render: Step 1 (Instruction) ---
+        // --- Render: Step 1 (Instruction + Breathing) ---
         function renderInstruction() {
             const current = promises[currentIndex];
-            setBokehColor(current.color);
+            updateBackground(current.color);
 
             container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full w-full relative">
-                    <div class="absolute top-0 text-[10px] text-white/20 tracking-[0.3em] uppercase">
+                <div class="fade-enter flex flex-col items-center justify-center h-full w-full relative px-4">
+                    <div class="absolute top-0 text-[9px] text-white/20 tracking-[0.3em] uppercase">
                         Promise ${currentIndex + 1}
                     </div>
 
-                    <div class="max-w-xs text-center mb-16">
-                        <p class="text-[10px] text-indigo-300 uppercase tracking-widest mb-4 font-bold opacity-70">Visualize</p>
-                        <p class="serif text-2xl text-slate-200 leading-relaxed font-light">
+                    <div class="max-w-xs text-center mb-10">
+                        <p class="text-[10px] text-white/40 uppercase tracking-widest mb-6 font-bold">Visualize</p>
+                        <p class="serif text-xl md:text-2xl text-slate-100 leading-relaxed font-light opacity-90">
                             "${current.instruction}"
                         </p>
                     </div>
 
-                    <div id="hold-area" class="flex flex-col items-center justify-center transition-opacity duration-500">
-                        <div id="hold-trigger" class="relative w-24 h-24 flex items-center justify-center cursor-pointer touch-none select-none active:scale-95 transition-transform duration-300">
-                            <div class="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
-                                </svg>
+                    <div class="mb-12 flex flex-col items-center animate-[breathe-text_4s_infinite_ease-in-out]">
+                        <p class="text-xs text-white/50 tracking-[0.2em] uppercase mb-2">Breathe In...</p>
+                        <div class="w-1 h-1 bg-white rounded-full mb-2"></div>
+                        <p class="text-xs text-white/50 tracking-[0.2em] uppercase">Breathe Out (3x)</p>
+                    </div>
+
+                    <div id="hold-area" class="flex flex-col items-center justify-center">
+                        <div id="hold-trigger" class="relative w-20 h-20 flex items-center justify-center cursor-pointer touch-none select-none active:scale-95 transition-transform duration-300">
+                            <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center">
+                                <div class="w-1 h-1 bg-white/50 rounded-full"></div>
                             </div>
                             
-                            <svg class="progress-ring absolute w-24 h-24 top-0 left-0" width="96" height="96">
-                                <circle id="progress-circle" class="progress-ring__circle" stroke="white" stroke-width="1.5" fill="transparent" r="46" cx="48" cy="48" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" />
+                            <svg class="progress-ring absolute w-20 h-20 top-0 left-0" width="80" height="80">
+                                <circle id="progress-circle" class="progress-ring__circle" stroke="white" stroke-width="1" fill="transparent" r="38" cx="40" cy="40" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="round" />
                             </svg>
                         </div>
-                        <p class="mt-4 text-[10px] text-white/30 uppercase tracking-widest">Hold to Internalize</p>
+                        <p class="mt-4 text-[9px] text-white/30 uppercase tracking-widest">Hold to Internalize</p>
                     </div>
                 </div>
             `;
@@ -271,7 +275,7 @@
         function setupHoldLogic() {
             const trigger = document.getElementById('hold-trigger');
             const circle = document.getElementById('progress-circle');
-            const circumference = 2 * Math.PI * 46;
+            const circumference = 2 * Math.PI * 38;
 
             const start = (e) => {
                 if(e.cancelable) e.preventDefault();
@@ -290,15 +294,16 @@
 
             const loop = () => {
                 if(!isHolding) return;
-                progress += 1.5; // Speed
+                progress += 0.8; // Slower, more deliberate hold
                 const offset = circumference - (progress / 100) * circumference;
                 circle.style.strokeDashoffset = offset;
 
-                if(Math.floor(progress) % 20 === 0) vibrate(5); // Tick
+                // Subtle haptic tick
+                if(Math.floor(progress) % 25 === 0) vibrate(5);
 
                 if(progress >= 100) {
                     isHolding = false;
-                    vibrate([40, 60]);
+                    vibrate([50, 50, 100]);
                     transitionTo(renderReveal);
                 } else {
                     animationFrame = requestAnimationFrame(loop);
@@ -316,22 +321,21 @@
         function renderReveal() {
             const current = promises[currentIndex];
             
-            // Blur out effect logic handled by transitionTo, now we render the clean state
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full w-full px-6">
                     <div class="min-h-[200px] flex items-center justify-center">
                         <h2 id="mantra-text" class="serif text-3xl md:text-4xl text-white text-center leading-snug tracking-wide"></h2>
                     </div>
                     
-                    <div id="next-btn-container" class="mt-12 opacity-0 transition-opacity duration-1000">
-                        <button id="next-btn" class="px-6 py-2 border border-white/20 rounded-full text-[10px] uppercase tracking-[0.3em] text-white/60 hover:bg-white/5 hover:text-white transition-all">
+                    <div id="next-btn-container" class="mt-16 opacity-0 transition-opacity duration-1000">
+                        <button id="next-btn" class="px-8 py-3 border-t border-b border-white/10 text-[10px] uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white/40 transition-all">
                             Proceed
                         </button>
                     </div>
                 </div>
             `;
 
-            // Logic to type words one by one
+            // Logic to type words one by one (The Reference Style)
             const textContainer = document.getElementById('mantra-text');
             const words = current.mantra.split(" ");
             textContainer.innerHTML = words.map(w => `<span class="word-reveal">${w}</span>`).join(" ");
@@ -342,13 +346,13 @@
             spans.forEach((span, i) => {
                 setTimeout(() => {
                     span.classList.add('visible');
-                    // Add subtle haptic for every word appearing
-                    if(i % 2 === 0) vibrate(5);
-                }, 500 + (i * 450)); // Slow, hypnotic pace
-                delay = 500 + (i * 450);
+                    // Very subtle tick for word appearance
+                    if(i % 2 === 0 && navigator.vibrate) navigator.vibrate(5);
+                }, 600 + (i * 500)); // Very slow, hypnotic pace (500ms per word)
+                delay = 600 + (i * 500);
             });
 
-            // Show Next Button after text finishes
+            // Show Next Button ONLY after text finishes
             setTimeout(() => {
                 const btnContainer = document.getElementById('next-btn-container');
                 btnContainer.classList.remove('opacity-0');
@@ -363,25 +367,25 @@
                         transitionTo(renderFinale);
                     }
                 };
-            }, delay + 800);
+            }, delay + 1000);
         }
 
         // --- Render: Finale ---
         function renderFinale() {
-            setBokehColor('rose');
+            updateBackground('#be123c'); // Deep red for love
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full max-w-md w-full p-6">
-                    <div class="w-32 h-32 rounded-full border border-white/20 flex items-center justify-center mb-10 animate-pulse">
-                        <div class="w-24 h-24 rounded-full bg-white/5 blur-xl"></div>
+                    <div class="w-32 h-32 rounded-full border border-white/10 flex items-center justify-center mb-10 animate-pulse">
+                        <div class="w-20 h-20 rounded-full bg-rose-500/20 blur-xl"></div>
                     </div>
                     
-                    <h1 class="serif text-5xl mb-6 text-white tracking-widest">Wholeness.</h1>
+                    <h1 class="serif text-5xl mb-6 text-white tracking-widest opacity-90">Wholeness.</h1>
                     
-                    <div class="glass-panel p-8 rounded-xl border-t border-white/20 relative w-full text-center">
+                    <div class="glass-panel p-8 rounded-sm relative w-full text-center">
                         <p class="text-slate-200 text-lg leading-relaxed font-light">
                             "The soul within you trusts your biology.<br>It trusts you to carry it."
                         </p>
-                        <div class="h-px w-12 bg-white/20 mx-auto my-6"></div>
+                        <div class="h-px w-8 bg-white/20 mx-auto my-6"></div>
                         <p class="text-rose-200 text-sm italic opacity-80">
                             You are safe with yourself now.
                         </p>
@@ -395,7 +399,6 @@
 
         // --- Transition Helper ---
         function transitionTo(renderFn) {
-            // Fade out current content
             if(container.firstElementChild) {
                 container.firstElementChild.classList.remove('fade-enter');
                 container.firstElementChild.classList.add('fade-exit');
@@ -404,7 +407,7 @@
             setTimeout(() => {
                 container.innerHTML = '';
                 renderFn();
-            }, 600);
+            }, 800); // Wait for fade out
         }
 
         // --- Init ---
