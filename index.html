@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Inner Promise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Typography & Base */
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #020202;
+            color: #e2e8f0;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .serif { font-family: 'Cormorant Garamond', serif; }
+        
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        @keyframes particle-drift {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+        }
+
+        /* Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .gold-text {
+            background: linear-gradient(to bottom, #fbfbfb, #bf953f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Progress Ring */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.1s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .fade-enter { opacity: 0; transform: translateY(20px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .fade-exit { opacity: 1; transform: scale(1); }
+        .fade-exit-active { opacity: 0; transform: scale(0.95); transition: opacity 0.5s ease, transform 0.5s ease; }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    </style>
+</head>
+<body class="h-dvh w-full flex flex-col items-center justify-center relative selection:bg-rose-500/30">
+
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-900/10 blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-rose-900/10 blur-[100px]"></div>
+        <div id="particles" class="absolute inset-0"></div>
+    </div>
+
+    <main id="app-container" class="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center p-6 text-center">
+        </main>
+
+    <script>
+        // --- Configuration ---
+        const promises = [
+            {
+                title: "I Promise to Stay",
+                text: "I will stop begging others to stay. Instead, I will stay for myself. I am my own constant.",
+                color: "text-rose-200"
+            },
+            {
+                title: "I Promise Validation",
+                text: "I will stop hunting for worth in the eyes of others. My reflection is the only validation I require.",
+                color: "text-indigo-200"
+            },
+            {
+                title: "I Promise Kindness",
+                text: "I will speak to myself as gently as I speak to those I love. No more harsh words in the mirror.",
+                color: "text-emerald-200"
+            },
+            {
+                title: "I Promise Acceptance",
+                text: "I deserve good things. I will not sabotage my happiness because I feel I don't belong there.",
+                color: "text-amber-100"
+            },
+            {
+                title: "I Promise Forgiveness",
+                text: "I forgive myself for the times I let myself down. I did the best I could with what I knew.",
+                color: "text-blue-200"
+            },
+            {
+                title: "I Promise Boundaries",
+                text: "My peace is expensive. I will not bankrupt my soul to make others comfortable.",
+                color: "text-slate-200"
+            },
+            {
+                title: "I Promise Trust",
+                text: "My intuition is my compass. I will trust my gut over my fear.",
+                color: "text-purple-200"
+            },
+            {
+                title: "I Promise Wellness",
+                text: "I will prioritize my health, my sleep, and my mind. I am the vessel of my own life.",
+                color: "text-teal-200"
+            },
+            {
+                title: "I Promise Love",
+                text: "I will be the love of my own life, unconditionally and irrevocably.",
+                color: "text-rose-300"
+            }
+        ];
+
+        // --- State ---
+        let step = 0; // 0: Intro, 1: Apology, 2: Promises, 3: Finale
+        let promiseIndex = 0;
+        let holding = false;
+        let progress = 0;
+        let animationFrame;
+
+        const container = document.getElementById('app-container');
+
+        // --- Utils ---
+        const vibrate = (pattern) => {
+            if (navigator.vibrate) navigator.vibrate(pattern);
+        };
+
+        const createParticle = () => {
+            const p = document.createElement('div');
+            p.className = 'absolute w-1 h-1 bg-white rounded-full opacity-0';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = Math.random() * 100 + '%';
+            p.style.animation = `particle-drift ${3 + Math.random() * 4}s linear infinite`;
+            document.getElementById('particles').appendChild(p);
+            setTimeout(() => p.remove(), 7000);
+        };
+        setInterval(createParticle, 500);
+
+        // --- Renders ---
+
+        function renderIntro() {
+            container.innerHTML = `
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full">
+                    <h1 class="serif text-4xl mb-4 gold-text tracking-wide opacity-90">The Connection</h1>
+                    <p class="text-slate-400 text-sm mb-12 max-w-[280px] leading-relaxed">
+                        Your soul trusts you. It's time for you to trust yourself again.
+                    </p>
+                    
+                    <div id="start-btn" class="relative group cursor-pointer w-24 h-24 rounded-full border border-white/10 flex items-center justify-center glass-panel transition-all duration-500 active:scale-95">
+                        <div class="absolute inset-0 bg-white/5 rounded-full animate-ping opacity-20"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
+                        </svg>
+                    </div>
+                    <p class="mt-6 text-xs text-white/30 uppercase tracking-widest">Touch to Align</p>
+                </div>
+            `;
+
+            const btn = document.getElementById('start-btn');
+            const handler = () => {
+                vibrate(50);
+                transitionTo(renderApology);
+            };
+            btn.addEventListener('click', handler);
+        }
+
+        function renderApology() {
+            container.innerHTML = `
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full max-w-xs mx-auto">
+                    <h2 class="serif text-3xl mb-8 text-white/90">First, The Release</h2>
+                    <p class="text-lg text-slate-300 mb-8 leading-relaxed font-light">
+                        "I apologize to myself. For waiting, for settling, for doubting my own magic."
+                    </p>
+                    <div id="forgive-btn" class="w-full glass-panel py-4 rounded-xl text-rose-200/90 tracking-widest text-sm uppercase font-bold cursor-pointer transition-all active:bg-rose-500/20 active:scale-95 border-rose-500/20">
+                        Forgive & Release
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('forgive-btn').addEventListener('click', () => {
+                vibrate([30, 50, 30]);
+                // Visual effect of dissolving text
+                container.firstElementChild.classList.remove('fade-enter-active');
+                container.firstElementChild.classList.add('fade-exit-active');
+                setTimeout(() => transitionTo(renderPromises), 500);
+            });
+        }
+
+        function renderPromises() {
+            if (promiseIndex >= promises.length) {
+                transitionTo(renderFinale);
+                return;
+            }
+
+            const current = promises[promiseIndex];
+            
+            container.innerHTML = `
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full w-full relative">
+                    <div class="absolute top-8 text-xs text-white/20 tracking-[0.2em]">PROMISE ${promiseIndex + 1} OF 9</div>
+                    
+                    <div class="flex-1 flex flex-col justify-center items-center z-10 w-full px-4">
+                        <h2 class="serif text-4xl mb-6 ${current.color} font-light tracking-wide">${current.title}</h2>
+                        <p class="text-base text-slate-300 font-light leading-7 opacity-0 translate-y-4 animate-[fadeIn_1s_ease_forwards_0.5s]">
+                            ${current.text}
+                        </p>
+                    </div>
+
+                    <div class="h-48 flex items-center justify-center w-full relative">
+                        <div id="hold-trigger" class="relative w-20 h-20 rounded-full flex items-center justify-center cursor-pointer transition-transform duration-100 active:scale-95">
+                            <svg class="progress-ring absolute w-24 h-24" width="120" height="120">
+                                <circle class="progress-ring__circle" stroke="white" stroke-width="2" fill="transparent" r="46" cx="60" cy="60" stroke-opacity="0.1"/>
+                                <circle id="progress-circle" class="progress-ring__circle" stroke="${getColor(current.color)}" stroke-width="4" fill="transparent" r="46" cx="60" cy="60" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" />
+                            </svg>
+                            <div class="w-16 h-16 bg-white/5 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                                <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                        <p class="absolute bottom-10 text-[10px] text-white/30 uppercase tracking-widest">Hold to Internalize</p>
+                    </div>
+                </div>
+            `;
+
+            const trigger = document.getElementById('hold-trigger');
+            const circle = document.getElementById('progress-circle');
+            const circumference = 2 * Math.PI * 46;
+
+            const startHold = (e) => {
+                e.preventDefault();
+                holding = true;
+                vibrate(10);
+                requestAnimationFrame(updateProgress);
+            };
+
+            const endHold = (e) => {
+                if(e) e.preventDefault();
+                holding = false;
+                progress = 0;
+                circle.style.strokeDashoffset = circumference;
+            };
+
+            const updateProgress = () => {
+                if (!holding) return;
+                progress += 1.5; // Speed of hold
+                const offset = circumference - (progress / 100) * circumference;
+                circle.style.strokeDashoffset = offset;
+
+                if (progress >= 100) {
+                    holding = false;
+                    vibrate([50, 50, 100]);
+                    completePromise();
+                } else {
+                    if (Math.floor(progress) % 20 === 0) vibrate(5); // Subtle tick
+                    requestAnimationFrame(updateProgress);
+                }
+            };
+
+            trigger.addEventListener('mousedown', startHold);
+            trigger.addEventListener('touchstart', startHold);
+            trigger.addEventListener('mouseup', endHold);
+            trigger.addEventListener('mouseleave', endHold);
+            trigger.addEventListener('touchend', endHold);
+        }
+
+        function completePromise() {
+            const el = container.firstElementChild;
+            el.classList.remove('fade-enter-active');
+            el.classList.add('fade-exit-active');
+            
+            setTimeout(() => {
+                promiseIndex++;
+                renderPromises();
+            }, 600);
+        }
+
+        function renderFinale() {
+            container.innerHTML = `
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full max-w-md">
+                    <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-rose-500 blur-2xl opacity-40 animate-[breathe_4s_infinite_ease-in-out] mb-8"></div>
+                    
+                    <h1 class="serif text-5xl mb-6 gold-text">Wholeness.</h1>
+                    
+                    <div class="glass-panel p-6 rounded-2xl border-t border-white/10 mx-4">
+                        <p class="text-slate-200 text-lg leading-relaxed font-light mb-4">
+                            "The soul within you trusts your biology. It trusts you to carry it."
+                        </p>
+                        <p class="text-slate-400 text-sm italic">
+                            You are safe with yourself now.
+                        </p>
+                    </div>
+                    
+                    <div class="mt-12 opacity-50 text-[10px] tracking-[0.3em] text-white uppercase">
+                        Promise Day 2026
+                    </div>
+                </div>
+            `;
+            vibrate([100, 50, 100, 50, 200]);
+        }
+
+        // --- Helpers ---
+        function transitionTo(renderFn) {
+            container.innerHTML = ''; 
+            renderFn();
+        }
+
+        function getColor(twClass) {
+            // Mapping tailwind classes to hex for SVG stroke
+            if (twClass.includes('rose')) return '#f43f5e';
+            if (twClass.includes('indigo')) return '#6366f1';
+            if (twClass.includes('emerald')) return '#10b981';
+            if (twClass.includes('amber')) return '#f59e0b';
+            if (twClass.includes('blue')) return '#3b82f6';
+            if (twClass.includes('slate')) return '#cbd5e1';
+            if (twClass.includes('purple')) return '#a855f7';
+            if (twClass.includes('teal')) return '#14b8a6';
+            return '#ffffff';
+        }
+
+        // Init
+        window.addEventListener('load', renderIntro);
+
+    </script>
+</body>
+</html>
