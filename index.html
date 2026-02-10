@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        /* --- Base & Reset --- */
+        /* --- Base Settings --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #000000;
@@ -23,7 +23,7 @@
         
         .serif { font-family: 'Cormorant Garamond', serif; }
         
-        /* --- Background FX --- */
+        /* --- Background Effects --- */
         .bokeh-container {
             position: absolute;
             inset: 0;
@@ -48,29 +48,43 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
 
-        /* --- Typography FX (Blur Fade) --- */
+        /* --- Text Animations --- */
         .gold-text {
             background: linear-gradient(to bottom, #fff, #e0c080);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .blur-reveal {
+        /* Word-by-Word Blur Fade */
+        .word-blur {
             opacity: 0;
-            filter: blur(15px);
-            transform: scale(0.98);
-            transition: all 1.8s cubic-bezier(0.2, 1, 0.3, 1);
+            filter: blur(12px);
+            transform: translateY(5px);
+            display: inline-block;
+            margin-right: 0.25em; /* Space between words */
+            transition: all 1.2s cubic-bezier(0.2, 1, 0.3, 1);
         }
-        .blur-reveal.visible {
+        .word-blur.visible {
             opacity: 1;
             filter: blur(0);
-            transform: scale(1);
+            transform: translateY(0);
         }
 
-        /* --- Animations --- */
+        /* Sentence-by-Sentence Blur Fade (For Visuals) */
+        .line-blur {
+            opacity: 0;
+            filter: blur(10px);
+            transition: all 1.5s ease;
+        }
+        .line-blur.visible {
+            opacity: 1;
+            filter: blur(0);
+        }
+
+        /* --- General Transitions --- */
         .fade-enter { animation: fadeIn 2s ease forwards; }
         .fade-exit { animation: fadeOut 1s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -95,7 +109,7 @@
 <body class="h-dvh w-full flex flex-col items-center justify-center relative">
 
     <audio id="bg-music" loop preload="auto">
-        <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_13a3780302.mp3?filename=angelic-pad-123497.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=ethereal-meditation-126284.mp3" type="audio/mpeg">
     </audio>
 
     <div class="bokeh-container">
@@ -157,7 +171,7 @@
             }
         ];
 
-        // --- State ---
+        // --- State Variables ---
         let currentIdx = 0;
         let isHolding = false;
         let progress = 0;
@@ -165,37 +179,44 @@
         const container = document.getElementById('app-container');
         const audio = document.getElementById('bg-music');
 
-        // --- Utils ---
+        // --- Utilities ---
         const vibrate = (p) => { if(navigator.vibrate) navigator.vibrate(p); };
+        
         const setColor = (c) => {
             document.getElementById('orb1').style.backgroundColor = c;
             document.getElementById('orb2').style.backgroundColor = c;
         };
 
-        // --- Audio Controller ---
-        const initAudio = () => {
-            audio.volume = 0;
-            audio.play().then(() => {
-                let vol = 0;
-                let fade = setInterval(() => {
-                    if(vol < 0.6) { vol += 0.05; audio.volume = vol; }
-                    else clearInterval(fade);
-                }, 200);
-            }).catch(() => console.log("Audio waiting"));
-        };
+        // --- Helper: Word-by-Word Animation ---
+        function renderWordByWord(element, text, delayStart = 0) {
+            const words = text.split(" ");
+            element.innerHTML = words.map(w => `<span class="word-blur">${w}</span>`).join("");
+            
+            const spans = element.querySelectorAll('.word-blur');
+            let totalDelay = 0;
+            
+            spans.forEach((span, i) => {
+                const delay = delayStart + (i * 300); // 300ms per word
+                totalDelay = delay;
+                setTimeout(() => {
+                    span.classList.add('visible');
+                }, delay);
+            });
+            return totalDelay;
+        }
 
         // --- SCENE 1: Instructions ---
         function renderInstructions() {
             container.innerHTML = `
                 <div class="fade-enter w-full flex flex-col items-center">
-                    <div class="glass-box p-10 rounded-xl w-full mb-10 text-left relative overflow-hidden">
+                    <div class="glass-box p-10 rounded-xl w-full mb-12 text-left relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-white/50"></div>
                         <h2 class="serif text-2xl text-white mb-6 tracking-wide">Preparation</h2>
                         <p class="text-sm text-slate-300 leading-8 mb-6 font-light">
-                            This experience is best enabled through headphones. Make sure you are in a comfortable environment and away from distractions. 
+                            This experience is best enabled through headphones. Ensure you are in a comfortable environment, away from distractions.
                         </p>
                         <p class="text-sm text-slate-300 leading-8 font-light">
-                            Each screen will have “visualisations” which you have to visualise in your head, eyes closed and focusing on long deep breaths (3 such breathe in and out is recommended.)
+                            Each screen contains visualizations to imagine with your eyes closed, while focusing on long, deep breaths (3 deep breaths are recommended).
                         </p>
                     </div>
                     <button id="ready-btn" class="group relative px-10 py-4 border border-white/20 rounded-full transition-all active:scale-95 hover:bg-white/5">
@@ -203,31 +224,46 @@
                     </button>
                 </div>
             `;
+            
+            // Audio trigger integrated here
             document.getElementById('ready-btn').addEventListener('click', () => {
-                initAudio();
+                audio.volume = 0;
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // Fade audio in
+                        let vol = 0;
+                        let fade = setInterval(() => {
+                            if(vol < 0.6) { vol += 0.05; audio.volume = vol; }
+                            else clearInterval(fade);
+                        }, 200);
+                    }).catch(error => {
+                        console.log("Audio play failed (browser restriction).");
+                    });
+                }
+                
                 vibrate(50);
                 transitionTo(renderTitle);
             });
         }
 
-        // --- SCENE 2: Movie Title ---
+        // --- SCENE 2: Title Card ---
         function renderTitle() {
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full">
-                    <h1 class="serif text-5xl md:text-6xl text-white tracking-widest mb-6 blur-reveal" id="title-text">
-                        9 PROMISES
-                    </h1>
+                    <h1 class="serif text-5xl md:text-6xl text-white tracking-widest mb-6" id="title-text"></h1>
                     <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_2s]"></div>
                     
                     <button id="enter-btn" class="opacity-0 animate-[fadeIn_1s_ease_forwards_3s] text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white transition-colors p-4">
                         Enter
                     </button>
                 </div>
-                <style>
-                    @keyframes widthGrow { from { w: 0; } to { width: 100px; } }
-                </style>
+                <style>@keyframes widthGrow { from { w: 0; } to { width: 100px; } }</style>
             `;
-            setTimeout(() => document.getElementById('title-text').classList.add('visible'), 500);
+            
+            // Render title word by word
+            renderWordByWord(document.getElementById('title-text'), "9 PROMISES", 500);
             
             document.getElementById('enter-btn').addEventListener('click', () => {
                 vibrate(50);
@@ -235,7 +271,7 @@
             });
         }
 
-        // --- SCENE 3: Visualization (The Loop) ---
+        // --- SCENE 3: Visualization Loop ---
         function renderExperience() {
             const data = promises[currentIdx];
             setColor(data.color);
@@ -254,7 +290,7 @@
 
                     <div class="flex flex-col items-center justify-center mb-8 opacity-0 transition-opacity duration-1000" id="action-area">
                         <p class="text-[10px] text-white/40 leading-relaxed text-center max-w-[280px] mb-8 font-light">
-                            Close your eyes and start visualising this, and breathe in and out slowly. Once you are ready to move on, open your eyes and use the button below
+                            Close your eyes, visualize this clearly, and breathe slowly. When you are ready to move on, open your eyes and use the button below.
                         </p>
                         
                         <div id="hold-btn" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
@@ -270,17 +306,14 @@
                 </div>
             `;
 
-            // Line by Line Animation (Blur Fade)
+            // Sentence-by-sentence animation for readability
             const textEl = document.getElementById('vis-text');
-            const sentences = data.visual.split('. ').filter(s => s.length > 0);
+            // Split logic to keep punctuation
+            const rawSentences = data.visual.match( /[^\.!\?]+[\.!\?]+/g ) || [data.visual];
             
-            textEl.innerHTML = sentences.map(s => {
-                // Re-add period if lost in split, unless it ends with one
-                const content = s.endsWith('.') ? s : s + '.';
-                return `<div class="blur-reveal mb-4">${content}</div>`
-            }).join('');
+            textEl.innerHTML = rawSentences.map(s => `<div class="line-blur mb-4">${s.trim()}</div>`).join("");
             
-            const els = document.querySelectorAll('.blur-reveal');
+            const els = document.querySelectorAll('.line-blur');
             let delay = 0;
             els.forEach((el, i) => {
                 setTimeout(() => el.classList.add('visible'), 500 + (i * 1200));
@@ -293,13 +326,13 @@
             }, delay + 1500);
         }
 
-        // --- Interaction Logic ---
+        // --- Interaction Logic (Hold Button) ---
         function setupHoldListener(btn) {
             const circle = document.getElementById('progress');
             const total = 289;
             
             const start = (e) => {
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 isHolding = true;
                 vibrate(30);
                 loop();
@@ -329,7 +362,7 @@
             };
 
             btn.addEventListener('mousedown', start);
-            btn.addEventListener('touchstart', start);
+            btn.addEventListener('touchstart', start, {passive: false});
             btn.addEventListener('mouseup', end);
             btn.addEventListener('touchend', end);
             btn.addEventListener('mouseleave', end);
@@ -341,9 +374,7 @@
             container.innerHTML = `
                 <div class="fade-enter flex flex-col items-center justify-center h-full w-full px-4">
                     <div class="min-h-[200px] flex items-center justify-center">
-                        <h2 class="serif text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg blur-reveal" id="mantra-text">
-                            "${data.mantra}"
-                        </h2>
+                        <h2 class="serif text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg" id="mantra-text"></h2>
                     </div>
                     
                     <button id="next-btn" class="mt-16 opacity-0 px-8 py-3 border-b border-white/20 text-xs uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white transition-all">
@@ -352,7 +383,8 @@
                 </div>
             `;
 
-            setTimeout(() => document.getElementById('mantra-text').classList.add('visible'), 500);
+            // Word-by-word animation for the Mantra
+            const totalTime = renderWordByWord(document.getElementById('mantra-text'), `"${data.mantra}"`, 500);
 
             setTimeout(() => {
                 const btn = document.getElementById('next-btn');
@@ -364,7 +396,7 @@
                     if(currentIdx < promises.length) transitionTo(renderExperience);
                     else transitionTo(renderFinale);
                 });
-            }, 2500);
+            }, totalTime + 1000);
         }
 
         // --- SCENE 5: Finale ---
@@ -374,12 +406,10 @@
                 <div class="fade-enter flex flex-col items-center justify-center h-full max-w-md w-full p-6">
                     <div class="w-32 h-32 rounded-full bg-white/10 blur-[80px] animate-pulse mb-8 absolute"></div>
                     
-                    <h1 class="serif text-4xl mb-8 text-white z-10 blur-reveal" id="final-title">Welcome Home.</h1>
+                    <h1 class="serif text-4xl mb-8 text-white z-10" id="final-title"></h1>
                     
                     <div class="glass-box p-10 rounded-xl w-full text-center z-10">
-                        <p class="serif text-xl text-slate-200 leading-relaxed font-light mb-6 blur-reveal" id="final-text">
-                            "You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for."
-                        </p>
+                        <p class="serif text-xl text-slate-200 leading-relaxed font-light mb-6" id="final-text"></p>
                         <div class="h-px w-10 bg-white/20 mx-auto mb-6"></div>
                         <p class="text-[10px] text-white/40 uppercase tracking-widest">
                             Promise Day 2026
@@ -387,10 +417,17 @@
                     </div>
                 </div>
             `;
+            
+            // Animate Finale Title Word-by-Word
+            renderWordByWord(document.getElementById('final-title'), "Welcome Home.", 500);
+            
+            // Animate Finale Quote Sentence-by-Sentence
             setTimeout(() => {
-                document.getElementById('final-title').classList.add('visible');
-                setTimeout(() => document.getElementById('final-text').classList.add('visible'), 1000);
-            }, 500);
+                const quote = "You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for.";
+                const textEl = document.getElementById('final-text');
+                textEl.innerHTML = `<div class="line-blur">${quote}</div>`;
+                setTimeout(() => textEl.firstChild.classList.add('visible'), 100);
+            }, 1500);
             
             vibrate([100, 50, 100, 50, 200]);
         }
