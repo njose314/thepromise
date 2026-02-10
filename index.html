@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>9 Promises</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+    
     <style>
-        /* --- Base Reset --- */
+        /* --- RESET & BASE --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #000000;
@@ -23,104 +26,124 @@
         
         .serif { font-family: 'Cormorant Garamond', serif; }
 
-        /* --- Z-Index Layering (Crucial for visibility) --- */
-        .layer-bg { z-index: 0; position: absolute; inset: 0; pointer-events: none; }
-        .layer-ui { z-index: 50; position: relative; }
+        /* --- LAYERING SYSTEM (Fixes Clicks) --- */
+        #layer-background {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        #layer-ui {
+            position: relative;
+            z-index: 50;
+            width: 100%;
+            height: 100%;
+        }
 
-        /* --- Background Bokeh --- */
+        /* --- BACKGROUND ANIMATION --- */
         .orb {
             position: absolute;
             border-radius: 50%;
             filter: blur(80px);
             opacity: 0.5;
             mix-blend-mode: screen;
-            animation: float 20s infinite ease-in-out alternate;
+            animation: float 25s infinite ease-in-out alternate;
         }
-        #orb1 { background: #4c1d95; width: 80vw; height: 80vw; top: -10%; left: -10%; }
-        #orb2 { background: #047857; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-direction: reverse; }
-        #orb3 { background: #1e40af; width: 60vw; height: 60vw; top: 40%; left: 20%; }
+        
+        /* Cool Tones Only */
+        #orb1 { background: #4338ca; width: 80vw; height: 80vw; top: -10%; left: -10%; } /* Indigo */
+        #orb2 { background: #059669; width: 90vw; height: 90vw; bottom: -10%; right: -10%; animation-direction: reverse; } /* Emerald */
+        #orb3 { background: #7c3aed; width: 60vw; height: 60vw; top: 40%; left: 20%; animation-duration: 35s; } /* Violet */
 
         @keyframes float { 
-            0% { transform: translate(0,0); } 
-            100% { transform: translate(30px, -30px); } 
+            0% { transform: translate(0,0) scale(1); } 
+            100% { transform: translate(30px, -30px) scale(1.1); } 
         }
 
-        /* --- Glass Container --- */
+        /* --- GLASS UI --- */
         .glass-box {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.5s ease;
         }
 
-        /* --- Text Animation Engine --- */
+        /* --- TEXT ANIMATION ENGINE (CSS-Based for Reliability) --- */
         .gold-text {
-            color: #fde047; /* Fallback */
-            background: linear-gradient(to bottom, #fff, #e0c080);
+            background: linear-gradient(to bottom, #fff, #fde047);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            /* Fallback for old browsers */
+            color: #fde047; 
         }
 
-        /* Force Opacity 1 via Animation to prevent invisible text */
-        .word-span {
+        /* The Word Reveal Animation */
+        .word-wrapper {
+            display: inline-block;
+            white-space: pre; /* Preserves spaces */
+        }
+        
+        .animate-word {
             opacity: 0;
             display: inline-block;
             transform: translateY(10px);
             filter: blur(8px);
-            margin-right: 0.25em;
-            animation: textReveal 0.8s forwards ease-out;
+            animation: reveal 0.8s forwards cubic-bezier(0.2, 1, 0.3, 1);
         }
-        
-        @keyframes textReveal {
+
+        @keyframes reveal {
             0% { opacity: 0; transform: translateY(10px); filter: blur(8px); }
             100% { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
 
-        /* Line by Line Fade */
-        .line-fade {
+        /* Line Reveal */
+        .animate-line {
             opacity: 0;
             transform: translateY(5px);
             transition: opacity 1s ease, transform 1s ease;
         }
-        .line-fade.visible {
+        .animate-line.visible {
             opacity: 1;
             transform: translateY(0);
         }
 
-        /* --- UI Components --- */
+        /* --- TRANSITIONS --- */
+        .fade-enter { animation: fadeIn 1.5s ease forwards; }
+        .fade-exit { animation: fadeOut 0.5s ease forwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* --- UTILS --- */
         .progress-ring__circle {
             transition: stroke-dashoffset 0.1s linear;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
-
-        /* --- Transitions --- */
-        .fade-enter { animation: fadeIn 1.5s ease forwards; }
-        .fade-exit { animation: fadeOut 0.5s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-
     </style>
 </head>
-<body class="h-dvh w-full flex flex-col items-center justify-center relative">
+<body class="h-dvh w-full overflow-hidden bg-black">
 
     <audio id="bg-music" loop preload="auto">
-        <source src="https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg" type="audio/ogg"> 
-        <source src="https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=ethereal-meditation-126284.mp3" type="audio/mpeg">
+        <source src="https://raw.githubusercontent.com/sound-library/ambient/main/ethereal-pad.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_13a3780302.mp3?filename=angelic-pad-123497.mp3" type="audio/mpeg">
     </audio>
 
-    <div class="layer-bg">
+    <div id="layer-background">
         <div id="orb1" class="orb"></div>
         <div id="orb2" class="orb"></div>
         <div id="orb3" class="orb"></div>
-        <div class="absolute inset-0 bg-black/40"></div> </div>
+        <div class="absolute inset-0 bg-black/30"></div> </div>
 
-    <main id="app-container" class="layer-ui w-full max-w-md h-full flex flex-col items-center justify-center p-4 text-center">
+    <main id="app-container" class="fade-enter w-full h-full flex flex-col items-center justify-center p-4 text-center z-50 relative">
         </main>
 
     <script>
-        // --- Content ---
+        // --- DATA ---
         const promises = [
             {
                 visual: "Imagine yourself as a great, ancient tree standing alone in a vast field. A storm comes—wind screams, rain lashes—but your roots go so deep into the earth that you do not sway. You are not holding onto the ground; you are part of it.",
@@ -160,23 +183,66 @@
             }
         ];
 
-        // --- Logic ---
-        let idx = 0;
-        let isHolding = false;
-        let progress = 0;
-        let animFrame;
-        const container = document.getElementById('app-container');
-        const audio = document.getElementById('bg-music');
+        // --- STATE ---
+        let state = {
+            index: 0,
+            holding: false,
+            progress: 0,
+            animFrame: null
+        };
 
-        // --- Utils ---
-        const vibrate = (p) => { if(navigator.vibrate) navigator.vibrate(p); };
+        const dom = {
+            container: document.getElementById('app-container'),
+            audio: document.getElementById('bg-music')
+        };
 
-        // --- Renders ---
+        // --- CORE FUNCTIONS ---
 
+        // 1. Audio Manager (Fixed for Mobile)
+        function playAudio() {
+            dom.audio.muted = false;
+            dom.audio.volume = 0.6;
+            const playPromise = dom.audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log("Audio playing successfully.");
+                }).catch(error => {
+                    console.warn("Audio autoplay blocked. Waiting for next interaction.", error);
+                });
+            }
+        }
+
+        // 2. Text Animator (Fixed Logic)
+        function typeText(element, text) {
+            const words = text.split(" ");
+            let html = "";
+            words.forEach((word, i) => {
+                // Stagger delay: 0.2s per word
+                const delay = i * 0.25; 
+                html += `<span class="word-wrapper"><span class="animate-word" style="animation-delay: ${delay}s">${word}</span></span> `;
+            });
+            element.innerHTML = html;
+            
+            // Return total duration for timing next events
+            return (words.length * 0.25) + 1; 
+        }
+
+        // 3. Haptics
+        function triggerHaptic(type) {
+            if (!navigator.vibrate) return;
+            if (type === 'tick') navigator.vibrate(5);
+            if (type === 'success') navigator.vibrate([50, 50, 100]);
+            if (type === 'bump') navigator.vibrate(20);
+        }
+
+        // --- SCENES ---
+
+        // Scene 1: Instructions
         function renderInstructions() {
-            container.innerHTML = `
-                <div class="fade-enter w-full h-full flex flex-col items-center justify-center">
-                    <div class="glass-box p-8 rounded-2xl w-full mb-10 text-left relative overflow-hidden max-w-sm">
+            dom.container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center fade-enter">
+                    <div class="glass-box p-8 rounded-2xl w-full max-w-sm mb-12 text-left relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1 h-full bg-white/40"></div>
                         <h2 class="serif text-2xl text-white mb-4 tracking-wide">Preparation</h2>
                         <p class="text-sm text-slate-200 leading-7 mb-4 font-light">
@@ -187,149 +253,147 @@
                         </p>
                     </div>
                     
-                    <button id="start-btn" class="relative px-12 py-4 border border-white/20 rounded-full active:scale-95 transition-all bg-black/20 hover:bg-white/10">
-                        <span class="text-xs tracking-[0.3em] uppercase text-white font-semibold">I Am Ready</span>
+                    <button id="btn-start" class="relative px-12 py-4 border border-white/20 rounded-full active:scale-95 transition-all bg-black/20 hover:bg-white/10 group">
+                        <span class="text-xs tracking-[0.3em] uppercase text-white font-semibold group-hover:text-white/80">I Am Ready</span>
                     </button>
                 </div>
             `;
 
-            document.getElementById('start-btn').addEventListener('click', () => {
-                // FORCE AUDIO PLAY
-                audio.muted = false;
-                audio.volume = 0.5;
-                const p = audio.play();
-                if (p !== undefined) {
-                    p.catch(error => {
-                        console.error("Audio failed", error);
-                        // Fallback interaction if needed, but usually works on click
-                    });
-                }
-                vibrate(50);
+            document.getElementById('btn-start').addEventListener('click', () => {
+                triggerHaptic('bump');
+                playAudio(); // Trigger audio directly on user gesture
                 transitionTo(renderTitle);
             });
         }
 
+        // Scene 2: Title
         function renderTitle() {
-            container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full w-full">
-                    <div class="min-h-[100px] flex items-center justify-center">
+            dom.container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center fade-enter">
+                    <div class="min-h-[100px] flex items-end justify-center">
                         <h1 id="title-text" class="serif text-5xl md:text-6xl text-white tracking-widest leading-tight text-center"></h1>
                     </div>
                     <div class="h-px w-0 bg-white/50 mb-12 animate-[widthGrow_2s_ease_forwards_1s]"></div>
                     
-                    <button id="enter-btn" class="opacity-0 transition-opacity duration-1000 text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white p-4">
+                    <button id="btn-enter" class="opacity-0 transition-opacity duration-1000 text-xs uppercase tracking-[0.4em] text-white/50 hover:text-white p-4">
                         Enter
                     </button>
                 </div>
                 <style>@keyframes widthGrow { to { width: 100px; } }</style>
             `;
 
-            // Animate Title
-            animateTextWordByWord(document.getElementById('title-text'), "9 PROMISES");
+            typeText(document.getElementById('title-text'), "9 PROMISES");
 
             setTimeout(() => {
-                const btn = document.getElementById('enter-btn');
+                const btn = document.getElementById('btn-enter');
                 btn.classList.remove('opacity-0');
                 btn.onclick = () => {
-                    vibrate(30);
-                    transitionTo(renderCard);
-                }
-            }, 2000);
+                    triggerHaptic('bump');
+                    transitionTo(renderVisual);
+                };
+            }, 2500);
         }
 
-        function renderCard() {
-            const data = promises[idx];
+        // Scene 3: Visualization Card
+        function renderVisual() {
+            const data = promises[state.index];
 
-            container.innerHTML = `
-                <div class="fade-enter w-full h-full flex flex-col items-center justify-center py-6">
+            dom.container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center py-6 fade-enter">
+                    
                     <div class="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-4">
-                        Promise ${idx + 1}
+                        Promise ${state.index + 1}
                     </div>
 
-                    <div class="glass-box p-6 rounded-2xl w-full flex flex-col justify-center relative mb-8 min-h-[300px] overflow-y-auto">
-                        <div class="absolute -top-3 left-6 bg-black px-3 text-[10px] text-white/60 uppercase tracking-widest border border-white/10 rounded-full">Visualize</div>
-                        <div id="vis-text" class="serif text-xl text-slate-100 leading-8 font-light tracking-wide text-left">
+                    <div class="glass-box p-8 rounded-2xl w-full flex flex-col justify-center relative mb-8 min-h-[300px] max-h-[60vh] overflow-y-auto">
+                        <div class="absolute -top-3 left-6 bg-black px-3 text-[10px] text-white/60 uppercase tracking-widest border border-white/10 rounded-full z-10">Visualize</div>
+                        <div id="text-visual" class="serif text-xl text-slate-100 leading-9 font-light tracking-wide text-left">
                             </div>
                     </div>
 
-                    <div id="action-area" class="flex flex-col items-center justify-center opacity-0 transition-opacity duration-1000">
+                    <div id="action-ui" class="flex flex-col items-center justify-center opacity-0 transition-opacity duration-1000">
                         <p class="text-[10px] text-white/50 leading-relaxed text-center max-w-[280px] mb-6 font-light">
                             Close your eyes. Visualize. Breathe. <br>When ready, open eyes and hold below.
                         </p>
                         
-                        <div id="hold-btn" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
+                        <div id="btn-hold" class="relative w-24 h-24 flex items-center justify-center cursor-pointer active:scale-95 transition-transform touch-none select-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.571-4.182m1.51 4.182c.55 1.745 1.56 3.328 2.836 4.636M15 11h.01" />
                             </svg>
                             <svg class="absolute w-24 h-24 rotate-[-90deg]">
                                 <circle class="text-white/10" stroke-width="1" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
-                                <circle id="progress" class="text-white transition-all duration-75" stroke-width="2" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
+                                <circle id="progress-circle" class="text-white transition-all duration-75" stroke-width="2" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" stroke="currentColor" fill="transparent" r="46" cx="48" cy="48"/>
                             </svg>
                         </div>
                     </div>
                 </div>
             `;
 
-            // Animate Lines
+            // Animate Text Lines
             const sentences = data.visual.match(/[^\.!\?]+[\.!\?]+/g) || [data.visual];
-            const textEl = document.getElementById('vis-text');
-            textEl.innerHTML = sentences.map(s => `<div class="line-fade mb-3 last:mb-0">${s.trim()}</div>`).join('');
+            const textContainer = document.getElementById('text-visual');
+            textContainer.innerHTML = sentences.map(s => `<div class="animate-line mb-4 last:mb-0">${s.trim()}</div>`).join('');
             
-            const lines = document.querySelectorAll('.line-fade');
+            const lines = document.querySelectorAll('.animate-line');
             let delay = 0;
             lines.forEach((line, i) => {
-                setTimeout(() => line.classList.add('visible'), 500 + (i * 1000));
-                delay = 500 + (i * 1000);
+                setTimeout(() => line.classList.add('visible'), 500 + (i * 1200));
+                delay = 500 + (i * 1200);
             });
 
             setTimeout(() => {
-                document.getElementById('action-area').classList.remove('opacity-0');
-                setupHold(document.getElementById('hold-btn'));
-            }, delay + 1000);
+                document.getElementById('action-ui').classList.remove('opacity-0');
+                bindHoldEvents();
+            }, delay + 1500);
         }
 
+        // Scene 4: Quote (Mantra)
         function renderQuote() {
-            const data = promises[idx];
+            const data = promises[state.index];
 
-            container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full w-full">
-                    <div class="min-h-[200px] flex items-center justify-center px-4">
-                        <h2 id="quote-text" class="serif text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg"></h2>
+            dom.container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center px-4 fade-enter">
+                    <div class="min-h-[200px] flex items-center justify-center">
+                        <h2 id="text-quote" class="serif text-3xl md:text-4xl gold-text text-center leading-normal tracking-wide drop-shadow-lg"></h2>
                     </div>
                     
-                    <button id="next-btn" class="mt-12 opacity-0 px-8 py-3 border-b border-white/20 text-xs uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white transition-all">
+                    <button id="btn-next" class="mt-16 opacity-0 px-8 py-3 border-b border-white/20 text-xs uppercase tracking-[0.3em] text-white/50 hover:text-white hover:border-white transition-all">
                         Proceed
                     </button>
                 </div>
             `;
 
-            // Animate Quote Word by Word
-            const duration = animateTextWordByWord(document.getElementById('quote-text'), `"${data.mantra}"`);
+            // Animate words
+            const durationSecs = typeText(document.getElementById('text-quote'), `"${data.mantra}"`);
+            const durationMs = durationSecs * 1000;
 
             setTimeout(() => {
-                const btn = document.getElementById('next-btn');
+                const btn = document.getElementById('btn-next');
                 btn.classList.remove('opacity-0');
                 btn.onclick = () => {
-                    vibrate(20);
-                    idx++;
-                    if(idx < promises.length) transitionTo(renderCard);
-                    else transitionTo(renderFinale);
-                }
-            }, duration + 500);
+                    triggerHaptic('bump');
+                    state.index++;
+                    if(state.index < promises.length) {
+                        transitionTo(renderVisual);
+                    } else {
+                        transitionTo(renderFinale);
+                    }
+                };
+            }, durationMs + 500);
         }
 
+        // Scene 5: Finale
         function renderFinale() {
-            container.innerHTML = `
-                <div class="fade-enter flex flex-col items-center justify-center h-full max-w-md w-full p-6">
+            dom.container.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center px-6 fade-enter">
                     <div class="w-32 h-32 rounded-full bg-white/10 blur-[80px] animate-pulse mb-8 absolute"></div>
                     
                     <div class="min-h-[80px] flex items-center justify-center mb-6">
-                        <h1 class="serif text-4xl text-white z-10" id="final-title"></h1>
+                        <h1 id="text-final-title" class="serif text-4xl text-white z-10"></h1>
                     </div>
                     
-                    <div class="glass-box p-8 rounded-xl w-full text-center z-10">
-                        <div id="final-text" class="serif text-xl text-slate-200 leading-relaxed font-light mb-6 min-h-[100px] flex items-center justify-center">
-                            </div>
+                    <div class="glass-box p-8 rounded-xl w-full text-center z-10 max-w-sm">
+                        <div id="text-final-body" class="serif text-xl text-slate-200 leading-relaxed font-light mb-6 min-h-[100px] flex items-center justify-center"></div>
                         <div class="h-px w-10 bg-white/20 mx-auto mb-6"></div>
                         <p class="text-[10px] text-white/40 uppercase tracking-widest">
                             Promise Day 2026
@@ -338,78 +402,73 @@
                 </div>
             `;
 
-            animateTextWordByWord(document.getElementById('final-title'), "Welcome Home.");
-            
+            typeText(document.getElementById('text-final-title'), "Welcome Home.");
+
             setTimeout(() => {
-                const el = document.getElementById('final-text');
-                el.innerHTML = `<div class="line-fade">You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for.</div>`;
+                const el = document.getElementById('text-final-body');
+                el.innerHTML = `<div class="animate-line">You have spent your whole life looking for a place to rest. You didn't realize that you are the home you were looking for.</div>`;
                 setTimeout(() => el.firstChild.classList.add('visible'), 100);
-            }, 1500);
-
-            vibrate([100, 50, 100, 50, 200]);
-        }
-
-        // --- Core Helpers ---
-
-        function animateTextWordByWord(element, text) {
-            const words = text.split(" ");
-            element.innerHTML = words.map((w, i) => 
-                `<span class="word-span" style="animation-delay: ${i * 0.3}s">${w}</span>`
-            ).join(" ");
-            return words.length * 300; // Return total duration ms
-        }
-
-        function setupHold(btn) {
-            const circle = document.getElementById('progress');
-            const circumference = 289;
+            }, 2000);
             
+            triggerHaptic('success');
+        }
+
+        // --- EVENTS ---
+
+        function bindHoldEvents() {
+            const btn = document.getElementById('btn-hold');
+            const circle = document.getElementById('progress-circle');
+            const total = 289;
+
             const start = (e) => {
                 if(e.cancelable) e.preventDefault();
-                isHolding = true;
-                vibrate(20);
+                state.holding = true;
+                triggerHaptic('bump');
                 loop();
             };
+
             const end = () => {
-                isHolding = false;
-                progress = 0;
-                circle.style.strokeDashoffset = circumference;
-                cancelAnimationFrame(animFrame);
+                state.holding = false;
+                state.progress = 0;
+                circle.style.strokeDashoffset = total;
+                cancelAnimationFrame(state.animFrame);
             };
 
             const loop = () => {
-                if(!isHolding) return;
-                progress += 1.5;
-                const offset = circumference - (progress / 100) * circumference;
-                circle.style.strokeDashoffset = offset;
+                if (!state.holding) return;
+                state.progress += 1.5;
                 
-                if(Math.floor(progress) % 20 === 0) vibrate(5);
+                const offset = total - (state.progress / 100) * total;
+                circle.style.strokeDashoffset = offset;
 
-                if(progress >= 100) {
-                    isHolding = false;
-                    vibrate([50, 100]);
+                if (Math.floor(state.progress) % 20 === 0) triggerHaptic('tick');
+
+                if (state.progress >= 100) {
+                    state.holding = false;
+                    triggerHaptic('success');
                     transitionTo(renderQuote);
                 } else {
-                    animFrame = requestAnimationFrame(loop);
+                    state.animFrame = requestAnimationFrame(loop);
                 }
             };
 
             btn.addEventListener('mousedown', start);
-            btn.addEventListener('touchstart', start, {passive:false});
+            btn.addEventListener('touchstart', start, {passive: false});
             btn.addEventListener('mouseup', end);
             btn.addEventListener('touchend', end);
             btn.addEventListener('mouseleave', end);
         }
 
-        function transitionTo(fn) {
-            container.classList.add('fade-exit');
+        function transitionTo(renderFn) {
+            dom.container.classList.add('fade-exit');
             setTimeout(() => {
-                container.innerHTML = '';
-                container.classList.remove('fade-exit');
-                fn();
+                dom.container.innerHTML = '';
+                dom.container.classList.remove('fade-exit');
+                renderFn();
             }, 500);
         }
 
-        // Init
+        // --- INIT ---
         window.onload = renderInstructions;
 
     </script>
