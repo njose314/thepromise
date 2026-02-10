@@ -9,270 +9,384 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        /* Base Settings */
-        :root {
-            --accent-color: #e2e8f0;
-        }
+        /* --- Base & Reset --- */
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #020202;
             color: #e2e8f0;
             overflow: hidden;
             touch-action: none;
-            overscroll-behavior: none; /* Prevents iOS rubber banding */
+            overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
-            transition: background-color 1s ease;
+            transition: background-color 2s ease;
         }
         
         .serif { font-family: 'Cormorant Garamond', serif; }
         
-        /* Glass & UI */
+        /* --- Glassmorphism --- */
         .glass-panel {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
+        /* --- Text Effects --- */
         .gold-text {
-            background: linear-gradient(to bottom, #fff, #c0a062);
+            background: linear-gradient(to bottom, #fff, #d4af37);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        /* Animations */
-        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
-        @keyframes breathe { 0%, 100% { opacity: 0.4; transform: scale(0.95); } 50% { opacity: 0.7; transform: scale(1.05); } }
-        @keyframes particle-rise {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-60px) scale(0); opacity: 0; }
+        .word-fade {
+            opacity: 0;
+            filter: blur(4px);
+            transition: opacity 1.5s ease, filter 1.5s ease;
+            display: inline-block;
+            margin-right: 0.25em;
+        }
+        .word-fade.visible {
+            opacity: 1;
+            filter: blur(0);
         }
 
-        /* Transitions */
-        .fade-enter-active { animation: fadeIn 0.8s ease forwards; }
-        .fade-exit-active { animation: fadeOut 0.5s ease forwards; }
+        /* --- Animations --- */
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        @keyframes breathe-guide { 
+            0%, 100% { transform: scale(1); opacity: 0.3; } 
+            50% { transform: scale(1.3); opacity: 0.6; } 
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.98); } }
+        /* --- Transitions --- */
+        .fade-enter-active { animation: fadeIn 1.5s ease forwards; }
+        .fade-exit-active { animation: fadeOut 1s ease forwards; }
 
-        /* Progress Ring */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* --- UI Elements --- */
         .progress-ring__circle {
             transition: stroke-dashoffset 0.1s linear;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
 
-        /* Typewriter Cursor */
-        .cursor::after { content: '|'; animation: blink 1s step-start infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* Vignette for Hold */
+        /* Vignette Overlay */
         .vignette {
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 100%);
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            z-index: 20;
+            background: radial-gradient(circle, transparent 40%, #000 120%);
+            opacity: 0.6;
+            z-index: 5;
         }
-        .vignette.active { opacity: 1; }
     </style>
 </head>
 <body class="h-dvh w-full flex flex-col items-center justify-center relative">
 
+    <audio id="bg-music" loop>
+        <source src="https://cdn.pixabay.com/audio/2022/05/16/audio_db6591201e.mp3" type="audio/mpeg">
+    </audio>
+
     <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden transition-colors duration-1000" id="bg-layer">
-        <div id="orb-1" class="absolute top-[-10%] left-[-10%] w-[60vh] h-[60vh] rounded-full bg-indigo-900/20 blur-[100px] transition-all duration-1000"></div>
-        <div id="orb-2" class="absolute bottom-[-10%] right-[-10%] w-[60vh] h-[60vh] rounded-full bg-rose-900/20 blur-[100px] transition-all duration-1000"></div>
-        <div id="particles" class="absolute inset-0"></div>
+        <div id="orb-1" class="absolute top-[-10%] left-[-10%] w-[70vh] h-[70vh] rounded-full bg-indigo-900/10 blur-[120px] transition-all duration-[3000ms]"></div>
+        <div id="orb-2" class="absolute bottom-[-10%] right-[-10%] w-[70vh] h-[70vh] rounded-full bg-rose-900/10 blur-[120px] transition-all duration-[3000ms]"></div>
+        <div id="particles" class="absolute inset-0 opacity-50"></div>
     </div>
 
-    <div id="vignette-overlay" class="vignette"></div>
+    <div class="vignette"></div>
 
     <main id="app-container" class="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center p-6 text-center">
         </main>
 
+    <div id="sound-control" class="absolute bottom-6 right-6 z-50 opacity-0 transition-opacity duration-1000">
+        <button onclick="toggleMute()" class="text-white/30 hover:text-white/80 transition-colors">
+            <svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+        </button>
+    </div>
+
     <script>
-        // --- Data & Config ---
-        const promises = [
-            { title: "I Promise to Stay", text: "I will stop begging others to stay. I will stay for myself. I am my own constant.", color: "text-rose-300", bg: "rose" },
-            { title: "I Promise Validation", text: "I will stop hunting for worth in others' eyes. My reflection is the only validation I require.", color: "text-indigo-300", bg: "indigo" },
-            { title: "I Promise Kindness", text: "I will speak to myself as gently as I speak to those I love. No more harsh words in the mirror.", color: "text-emerald-300", bg: "emerald" },
-            { title: "I Promise Acceptance", text: "I deserve good things. I will not sabotage my happiness because I feel I don't belong there.", color: "text-amber-200", bg: "amber" },
-            { title: "I Promise Forgiveness", text: "I forgive myself for the times I let myself down. I did the best I could with what I knew.", color: "text-blue-300", bg: "blue" },
-            { title: "I Promise Boundaries", text: "My peace is expensive. I will not bankrupt my soul to make others comfortable.", color: "text-slate-300", bg: "slate" },
-            { title: "I Promise Trust", text: "My intuition is my compass. I will trust my gut over my fear.", color: "text-purple-300", bg: "purple" },
-            { title: "I Promise Wellness", text: "I will prioritize my health, my sleep, and my mind. I am the vessel of my own life.", color: "text-teal-300", bg: "teal" },
-            { title: "I Promise Love", text: "I will be the love of my own life, unconditionally and irrevocably.", color: "text-pink-300", bg: "pink" }
+        // --- Configuration ---
+        const affirmations = [
+            { 
+                step: "Anchor",
+                instruction: "Close your eyes. Visualize your feet growing roots into the earth.",
+                mantra: "I am not going anywhere. I am my own constant.",
+                color: "rose" 
+            },
+            { 
+                step: "Validation",
+                instruction: "Breathe in deeply. Imagine a mirror in front of you.",
+                mantra: "I do not need them to see me. I see myself.",
+                color: "indigo" 
+            },
+            { 
+                step: "Softness",
+                instruction: "Place a hand over your heart. Feel its rhythm.",
+                mantra: "I will speak to myself with the gentleness I give to others.",
+                color: "emerald" 
+            },
+            { 
+                step: "Deserving",
+                instruction: "Unclench your jaw. Drop your shoulders.",
+                mantra: "I am allowed to be happy here. I belong in the light.",
+                color: "amber" 
+            },
+            { 
+                step: "Forgiveness",
+                instruction: "Visualize your past self. Give her a hug.",
+                mantra: "I forgive you. You did the best you could.",
+                color: "blue" 
+            },
+            { 
+                step: "Boundaries",
+                instruction: "Imagine a golden shield surrounding your body.",
+                mantra: "My peace is expensive. I will not sell it for approval.",
+                color: "slate" 
+            },
+            { 
+                step: "Trust",
+                instruction: "Focus on the space between your eyebrows.",
+                mantra: "My soul knows the way. I trust my biology.",
+                color: "purple" 
+            },
+            { 
+                step: "Wellness",
+                instruction: "Take a deep breath into your belly.",
+                mantra: "I am the vessel. I will honor my rest.",
+                color: "teal" 
+            },
+            { 
+                step: "Union",
+                instruction: "Wrap your arms around yourself. Squeeze tight.",
+                mantra: "I promise to be the love of my own life.",
+                color: "pink" 
+            }
         ];
 
-        // --- State ---
-        let promiseIndex = 0;
-        let animationFrame;
+        // --- State Management ---
+        let currentStep = 0;
         let isHolding = false;
         let progress = 0;
-
+        let animationFrame;
+        const audio = document.getElementById('bg-music');
         const container = document.getElementById('app-container');
-        const vignette = document.getElementById('vignette-overlay');
-        const orb1 = document.getElementById('orb-1');
-        const orb2 = document.getElementById('orb-2');
 
-        // --- Core Functions ---
+        // --- Audio Engine ---
+        function startAudio() {
+            audio.volume = 0;
+            audio.play().then(() => {
+                // Fade in audio
+                let vol = 0;
+                const interval = setInterval(() => {
+                    if (vol < 0.5) {
+                        vol += 0.05;
+                        audio.volume = vol;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 200);
+                document.getElementById('sound-control').classList.remove('opacity-0');
+            }).catch(e => console.log("Audio requires interaction"));
+        }
 
-        // 1. Haptics
+        function toggleMute() {
+            if (audio.paused) audio.play();
+            else audio.pause();
+        }
+
+        // --- Haptics ---
         const vibrate = (pattern) => {
             if (navigator.vibrate) navigator.vibrate(pattern);
         };
 
-        // 2. Background Manager
-        const updateTheme = (colorName) => {
+        // --- Visual Effects ---
+        function updateTheme(colorName) {
             const colors = {
-                rose: 'rgba(225, 29, 72, 0.2)',
-                indigo: 'rgba(79, 70, 229, 0.2)',
-                emerald: 'rgba(16, 185, 129, 0.2)',
-                amber: 'rgba(245, 158, 11, 0.2)',
-                blue: 'rgba(59, 130, 246, 0.2)',
-                slate: 'rgba(148, 163, 184, 0.2)',
-                purple: 'rgba(147, 51, 234, 0.2)',
-                teal: 'rgba(20, 184, 166, 0.2)',
-                pink: 'rgba(236, 72, 153, 0.2)'
+                rose: '#be123c', indigo: '#4338ca', emerald: '#047857',
+                amber: '#b45309', blue: '#1d4ed8', slate: '#475569',
+                purple: '#7e22ce', teal: '#0f766e', pink: '#be185d'
             };
             const c = colors[colorName] || colors.rose;
-            orb1.style.backgroundColor = c;
-            orb2.style.backgroundColor = c;
-        };
+            
+            // Slow Morph
+            document.getElementById('orb-1').style.backgroundColor = c + '40'; // 40 is hex opacity
+            document.getElementById('orb-2').style.backgroundColor = c + '40';
+        }
 
-        // 3. Typewriter Effect
-        const typeWriter = (element, text, speed = 30) => {
-            element.innerHTML = "";
-            let i = 0;
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed);
-                } else {
-                    element.classList.remove("cursor");
-                }
-            }
-            element.classList.add("cursor");
-            type();
-        };
+        // --- Text Animator (Word by Word Fade) ---
+        function renderText(element, text, delayStart = 0) {
+            const words = text.split(" ");
+            element.innerHTML = words.map(w => `<span class="word-fade">${w}</span>`).join(" ");
+            
+            const spans = element.querySelectorAll('.word-fade');
+            spans.forEach((span, index) => {
+                setTimeout(() => {
+                    span.classList.add('visible');
+                }, delayStart + (index * 300)); // 300ms per word
+            });
+            
+            // Return total duration for timing next events
+            return delayStart + (words.length * 300);
+        }
 
-        // --- Render Views ---
-
+        // --- View: Intro ---
         function renderIntro() {
             container.innerHTML = `
                 <div class="fade-enter-active flex flex-col items-center justify-center h-full">
-                    <h1 class="serif text-5xl mb-6 gold-text tracking-wide">The Promise</h1>
-                    <p class="text-slate-400 text-sm mb-12 max-w-[280px] leading-relaxed font-light">
-                        For the girl who gives everything to everyone else.<br><br>It is time to give back to yourself.
+                    <div class="mb-8 w-24 h-24 rounded-full border border-white/10 flex items-center justify-center relative">
+                        <div class="absolute inset-0 rounded-full animate-[pulse-ring_3s_infinite]"></div>
+                        <svg class="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                    </div>
+                    <h1 class="serif text-4xl mb-6 gold-text tracking-widest">Sanctuary</h1>
+                    <p class="text-slate-400 text-sm mb-12 max-w-[260px] leading-relaxed font-light opacity-80">
+                        This is a guided hypnosis for your soul.<br><br>Please use headphones.
                     </p>
                     
-                    <button id="start-btn" class="group relative px-8 py-3 glass-panel rounded-full overflow-hidden transition-all active:scale-95">
-                        <span class="relative z-10 text-rose-100 uppercase tracking-[0.2em] text-xs">Begin Journey</span>
-                        <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <button id="start-btn" class="px-10 py-4 glass-panel rounded-full text-xs uppercase tracking-[0.2em] text-white/80 transition-all active:scale-95 hover:bg-white/5">
+                        Enter Silence
                     </button>
                 </div>
             `;
             
             document.getElementById('start-btn').addEventListener('click', () => {
+                startAudio();
                 vibrate(50);
                 transitionTo(renderBreathe);
             });
         }
 
+        // --- View: Breathing Guide ---
         function renderBreathe() {
             container.innerHTML = `
                 <div class="fade-enter-active flex flex-col items-center justify-center h-full">
-                    <div class="w-32 h-32 rounded-full border border-white/20 flex items-center justify-center animate-[breathe_5s_infinite_ease-in-out]">
-                        <div class="w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                    <div class="relative w-40 h-40 flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-white/5 animate-[breathe-guide_8s_infinite_ease-in-out]"></div>
+                        <div class="absolute inset-4 rounded-full border border-white/10"></div>
+                        <div class="w-2 h-2 bg-white rounded-full"></div>
                     </div>
-                    <p id="breathe-text" class="mt-8 text-xl serif text-white/80">Breathe In...</p>
+                    <div class="mt-12 h-16 flex items-center justify-center">
+                        <p id="guide-text" class="serif text-2xl text-white/90"></p>
+                    </div>
                 </div>
             `;
 
-            const textEl = document.getElementById('breathe-text');
-            setTimeout(() => { textEl.innerText = "Breathe Out..."; vibrate(30); }, 2500);
-            setTimeout(() => { transitionTo(renderApology); }, 5000);
+            const textEl = document.getElementById('guide-text');
+            
+            // Sequence
+            setTimeout(() => { textEl.innerText = "Inhale..."; }, 500);
+            setTimeout(() => { textEl.innerText = "Hold..."; }, 4500);
+            setTimeout(() => { textEl.innerText = "Release..."; vibrate(100); }, 6500);
+            
+            setTimeout(() => { 
+                transitionTo(renderApology); 
+            }, 10000);
         }
 
+        // --- View: The Release (Apology) ---
         function renderApology() {
             container.innerHTML = `
-                <div class="fade-enter-active flex flex-col items-center justify-center h-full max-w-xs mx-auto">
-                    <h2 class="serif text-3xl mb-8 text-white/90">The Release</h2>
-                    <p id="apology-text" class="text-lg text-slate-300 mb-10 leading-relaxed font-light min-h-[100px]"></p>
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full w-full px-6">
+                    <p class="text-xs text-white/30 uppercase tracking-[0.3em] mb-8">Phase 1: Release</p>
                     
-                    <button id="forgive-btn" class="w-full glass-panel py-4 rounded-xl text-rose-200/90 tracking-widest text-sm uppercase font-bold cursor-pointer transition-all active:bg-rose-500/10 active:scale-95 border-rose-500/20 opacity-0 transition-opacity duration-1000">
-                        I Forgive Myself
-                    </button>
+                    <div class="min-h-[160px] flex flex-col items-center justify-center text-center">
+                        <p id="apology-instruction" class="text-sm text-indigo-200 italic mb-6 font-light opacity-80"></p>
+                        <h2 id="apology-mantra" class="serif text-2xl text-white leading-relaxed"></h2>
+                    </div>
+
+                    <div id="action-area" class="mt-12 opacity-0 transition-opacity duration-1000">
+                        <div class="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-8"></div>
+                        <p class="text-[10px] text-white/40 uppercase tracking-widest mb-4">When you are ready</p>
+                        <button id="forgive-btn" class="w-full glass-panel py-4 rounded-xl text-rose-200/90 tracking-widest text-xs uppercase font-bold cursor-pointer transition-all active:scale-95">
+                            I Release This Weight
+                        </button>
+                    </div>
                 </div>
             `;
 
-            const txt = "I apologize to myself. For waiting, for settling, for doubting my own magic. Tonight, I clear the slate.";
-            typeWriter(document.getElementById('apology-text'), txt, 30);
+            // Sequence Timing
+            const instruction = "Close your eyes. Visualize the heavy backpack you have been carrying.";
+            const mantra = "I apologize to myself for waiting, for settling, and for doubting my own magic.";
+            
+            const t1 = renderText(document.getElementById('apology-instruction'), instruction, 500);
             
             setTimeout(() => {
-                document.getElementById('forgive-btn').classList.remove('opacity-0');
-            }, 2500);
+                const t2 = renderText(document.getElementById('apology-mantra'), mantra, 500);
+                setTimeout(() => {
+                    document.getElementById('action-area').classList.remove('opacity-0');
+                }, t2); // Reveal button after text finishes
+            }, t1 + 1000);
 
             document.getElementById('forgive-btn').addEventListener('click', () => {
                 vibrate([40, 50, 40]);
-                transitionTo(renderPromises);
+                transitionTo(renderAffirmations);
             });
         }
 
-        function renderPromises() {
-            if (promiseIndex >= promises.length) {
+        // --- View: Affirmation Loop ---
+        function renderAffirmations() {
+            if (currentStep >= affirmations.length) {
                 transitionTo(renderFinale);
                 return;
             }
 
-            const current = promises[promiseIndex];
-            updateTheme(current.bg);
-
-            // Progress dots
-            let dots = '';
-            promises.forEach((_, i) => {
-                dots += `<div class="w-1.5 h-1.5 rounded-full mx-1 ${i === promiseIndex ? 'bg-white scale-125' : 'bg-white/20'} transition-all"></div>`;
-            });
+            const data = affirmations[currentStep];
+            updateTheme(data.color);
 
             container.innerHTML = `
-                <div class="fade-enter-active flex flex-col items-center justify-center h-full w-full relative">
-                    <div class="absolute top-8 text-[10px] text-white/30 tracking-[0.3em] uppercase">Promise ${promiseIndex + 1}</div>
-                    
-                    <div class="flex-1 flex flex-col justify-center items-center z-10 w-full px-6">
-                        <h2 class="serif text-4xl mb-6 ${current.color} font-light tracking-wide animate-[float_6s_infinite_ease-in-out]">${current.title}</h2>
-                        <div class="min-h-[120px] flex items-center justify-center">
-                            <p id="promise-text" class="text-lg text-slate-200 font-light leading-8"></p>
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full w-full relative px-6">
+                    <div class="absolute top-8 text-[10px] text-white/30 tracking-[0.3em] uppercase">
+                        Part ${currentStep + 1} of ${affirmations.length}
+                    </div>
+
+                    <div class="flex-1 flex flex-col justify-center items-center w-full max-w-sm">
+                        
+                        <div class="glass-panel p-6 rounded-2xl mb-8 w-full border-t border-white/10">
+                            <p class="text-xs text-${data.color}-300 uppercase tracking-widest mb-3 font-bold opacity-70">Instruction</p>
+                            <p id="instruction-text" class="text-sm text-slate-200 font-light italic leading-6 min-h-[40px]"></p>
+                        </div>
+
+                        <div class="min-h-[100px] flex items-center justify-center mb-8">
+                            <h2 id="mantra-text" class="serif text-3xl text-white text-center leading-snug"></h2>
                         </div>
                     </div>
 
-                    <div class="h-48 flex flex-col items-center justify-center w-full relative">
-                        <div id="hold-trigger" class="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer transition-transform duration-200 active:scale-95 touch-none select-none">
+                    <div id="hold-area" class="h-48 flex flex-col items-center justify-center w-full relative opacity-0 transition-opacity duration-1000">
+                        <div id="hold-trigger" class="relative w-24 h-24 rounded-full flex items-center justify-center cursor-pointer touch-none select-none active:scale-95 transition-transform">
                             <svg class="progress-ring absolute w-28 h-28" width="120" height="120">
-                                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="transparent" r="46" cx="60" cy="60"/>
-                                <circle id="progress-circle" class="progress-ring__circle" stroke="${getStrokeColor(current.bg)}" stroke-width="3" fill="transparent" r="46" cx="60" cy="60" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" />
+                                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="transparent" r="46" cx="60" cy="60"/>
+                                <circle id="progress-circle" class="progress-ring__circle" stroke="white" stroke-width="2" fill="transparent" r="46" cx="60" cy="60" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" />
                             </svg>
-                            <div class="w-20 h-20 bg-white/5 rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center shadow-2xl">
-                                <div class="w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
+                            <div class="w-20 h-20 bg-gradient-to-b from-white/10 to-transparent rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                <div class="w-1 h-1 bg-white rounded-full"></div>
                             </div>
-                            
-                            <div id="particles-burst" class="absolute inset-0 pointer-events-none"></div>
                         </div>
                         <p class="mt-6 text-[10px] text-white/30 uppercase tracking-widest">Hold to Internalize</p>
                     </div>
-
-                    <div class="absolute bottom-8 flex">${dots}</div>
                 </div>
             `;
 
-            typeWriter(document.getElementById('promise-text'), current.text, 25);
-
-            setupHoldInteraction();
+            // Sequence Text
+            const t1 = renderText(document.getElementById('instruction-text'), data.instruction, 500);
+            
+            setTimeout(() => {
+                const t2 = renderText(document.getElementById('mantra-text'), data.mantra, 500);
+                setTimeout(() => {
+                    document.getElementById('hold-area').classList.remove('opacity-0');
+                    setupHoldInteraction();
+                }, t2 + 1000);
+            }, t1 + 2000); // Pause between instruction and mantra
         }
 
+        // --- Interaction Logic ---
         function setupHoldInteraction() {
             const trigger = document.getElementById('hold-trigger');
             const circle = document.getElementById('progress-circle');
@@ -281,10 +395,7 @@
             const startHold = (e) => {
                 if(e.cancelable) e.preventDefault();
                 isHolding = true;
-                vignette.classList.add('active');
                 vibrate(20);
-                
-                // Cancel any existing loop to prevent speed up
                 if (animationFrame) cancelAnimationFrame(animationFrame);
                 loop();
             };
@@ -292,9 +403,6 @@
             const endHold = (e) => {
                 if(e && e.cancelable) e.preventDefault();
                 isHolding = false;
-                vignette.classList.remove('active');
-                
-                // Reset visual
                 progress = 0;
                 circle.style.strokeDashoffset = circumference;
                 if (animationFrame) cancelAnimationFrame(animationFrame);
@@ -303,24 +411,23 @@
             const loop = () => {
                 if (!isHolding) return;
                 
-                progress += 1.5; // Speed
+                progress += 0.8; // Slower, more hypnotic hold speed
                 const offset = circumference - (progress / 100) * circumference;
                 circle.style.strokeDashoffset = offset;
 
-                if (Math.floor(progress) % 15 === 0) vibrate(5); // Haptic Tick
+                // Gentle pulses
+                if (Math.floor(progress) % 25 === 0) vibrate(5); 
 
                 if (progress >= 100) {
                     isHolding = false;
-                    vignette.classList.remove('active');
-                    vibrate([50, 50, 100]);
-                    triggerSuccessEffect();
-                    return;
+                    vibrate([50, 100, 50]);
+                    completeStep();
+                } else {
+                    animationFrame = requestAnimationFrame(loop);
                 }
-                
-                animationFrame = requestAnimationFrame(loop);
             };
 
-            // Touch events
+            // Bind Events
             trigger.addEventListener('touchstart', startHold, {passive: false});
             trigger.addEventListener('touchend', endHold);
             trigger.addEventListener('mousedown', startHold);
@@ -328,53 +435,38 @@
             trigger.addEventListener('mouseleave', endHold);
         }
 
-        function triggerSuccessEffect() {
-            const burst = document.getElementById('particles-burst');
-            // Create particles
-            for(let i=0; i<8; i++) {
-                const p = document.createElement('div');
-                p.className = 'absolute w-2 h-2 bg-white rounded-full opacity-0';
-                p.style.left = '50%';
-                p.style.top = '50%';
-                p.style.transform = `rotate(${i * 45}deg) translateY(-20px)`;
-                p.style.animation = `particle-rise 0.6s ease forwards`;
-                burst.appendChild(p);
-            }
-
+        function completeStep() {
             const el = container.firstElementChild;
             el.classList.add('fade-exit-active');
-            
             setTimeout(() => {
-                promiseIndex++;
-                renderPromises();
-            }, 600);
+                currentStep++;
+                renderAffirmations();
+            }, 800);
         }
 
+        // --- View: Finale ---
         function renderFinale() {
             updateTheme('rose');
             container.innerHTML = `
-                <div class="fade-enter-active flex flex-col items-center justify-center h-full max-w-md w-full">
-                    <div class="w-40 h-40 rounded-full bg-gradient-to-tr from-rose-500 via-indigo-500 to-purple-500 blur-3xl opacity-30 animate-[breathe_4s_infinite_ease-in-out] mb-8"></div>
+                <div class="fade-enter-active flex flex-col items-center justify-center h-full max-w-md w-full p-6">
+                    <div class="w-48 h-48 rounded-full bg-gradient-to-tr from-rose-500 via-indigo-500 to-purple-500 blur-[80px] opacity-40 animate-[breathe-guide_6s_infinite_ease-in-out] mb-10"></div>
                     
-                    <h1 class="serif text-5xl mb-4 gold-text">Wholeness.</h1>
+                    <h1 class="serif text-5xl mb-6 gold-text">Wholeness.</h1>
                     
-                    <div class="glass-panel p-8 rounded-2xl border-t border-white/10 mx-6 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-400 to-transparent opacity-50"></div>
-                        <p class="text-slate-200 text-lg leading-relaxed font-light mb-4">
-                            "The soul within you trusts your biology. It trusts you to carry it."
+                    <div class="glass-panel p-8 rounded-2xl border-t border-white/20 relative w-full">
+                        <p class="text-slate-200 text-lg leading-relaxed font-light mb-6">
+                            "The soul within you trusts your biology.<br>It trusts you to carry it."
                         </p>
-                        <p class="text-slate-400 text-sm italic">
+                        <div class="h-px w-full bg-white/10 mb-6"></div>
+                        <p class="text-rose-200 text-sm italic opacity-80">
                             You are safe with yourself now.
                         </p>
                     </div>
                     
-                    <div class="mt-12 text-center">
-                        <p class="text-[10px] tracking-[0.3em] text-white/40 uppercase mb-2">Promise Day 2026</p>
-                        <div class="w-1 h-8 bg-gradient-to-b from-white/20 to-transparent mx-auto"></div>
-                    </div>
+                    <p class="mt-12 text-[10px] tracking-[0.4em] text-white/30 uppercase">Promise Day 2026</p>
                 </div>
             `;
-            vibrate([100, 50, 100, 50, 200]); // Heartbeat
+            vibrate([100, 50, 100, 50, 200]); 
         }
 
         // --- Utils ---
@@ -383,26 +475,17 @@
             renderFn();
         }
 
-        function getStrokeColor(bgTheme) {
-            // Hex codes matching Tailwind colors for SVG
-            const map = {
-                rose: '#f43f5e', indigo: '#6366f1', emerald: '#10b981',
-                amber: '#f59e0b', blue: '#3b82f6', slate: '#cbd5e1',
-                purple: '#a855f7', teal: '#14b8a6', pink: '#ec4899'
-            };
-            return map[bgTheme] || '#ffffff';
-        }
-
-        // --- Init ---
-        // Create background particles
-        const particleContainer = document.getElementById('particles');
-        for(let i=0; i<20; i++) {
-            const p = document.createElement('div');
-            p.className = 'absolute w-1 h-1 bg-white/20 rounded-full';
-            p.style.left = Math.random() * 100 + '%';
-            p.style.top = Math.random() * 100 + '%';
-            p.style.animation = `float ${3 + Math.random() * 5}s infinite ease-in-out ${Math.random() * 2}s`;
-            particleContainer.appendChild(p);
+        // --- Init Particles ---
+        const pContainer = document.getElementById('particles');
+        for(let i=0; i<30; i++) {
+            const d = document.createElement('div');
+            d.className = 'absolute bg-white rounded-full opacity-20';
+            d.style.width = Math.random() * 3 + 'px';
+            d.style.height = d.style.width;
+            d.style.left = Math.random() * 100 + '%';
+            d.style.top = Math.random() * 100 + '%';
+            d.style.animation = `float ${5 + Math.random() * 10}s infinite ease-in-out ${Math.random() * 5}s`;
+            pContainer.appendChild(d);
         }
 
         window.addEventListener('load', renderIntro);
